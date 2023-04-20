@@ -500,7 +500,7 @@ def main():
 
                 # анимация
                 if scramble_move == 0:
-                    step = ring_scale * 10
+                    step = ring_scale * 7
                     for count in range(int(step)):
                         timer.tick(1000)
                         game_scr.fill(Color(GRAY_COLOR))
