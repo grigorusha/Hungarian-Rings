@@ -154,13 +154,15 @@ def read_file(fl,init=""):
 
     flip_y = flip_x = flip_rotate = False
     ring_name, ring_scale = "", 1
-    param_calc, ring_ballsformat, ring_rings, ring_balls, ring_link = [], [], [], [], []
+    param_calc, ring_ballsformat, ring_rings, ring_balls, ring_link, solved_ring = [], [], [], [], [], []
 
     if fl == "init":
         lines = init.split("\n")
     else:
         if fl=="open" or filename=="":
             dir = os.path.abspath(os.curdir)
+            if os.path.isdir(dir+"\\Rings"):
+                dir = dir+"\\Rings"
             filetypes = (("Text file", "*.txt"),("Any file", "*"))
             filename = fd.askopenfilename(title="Open Level", initialdir=dir,filetypes=filetypes)
             if filename=="":
@@ -311,7 +313,9 @@ def read_file(fl,init=""):
                     if fl_break: break
                 if fl_break: break
 
-    return ring_name,ring_link, ring_scale, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, WIN_WIDTH,WIN_HEIGHT, vek_mul
+    solved_ring = copy.deepcopy(ring_balls)
+
+    return ring_name,ring_link, ring_scale, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, solved_ring, WIN_WIDTH,WIN_HEIGHT, vek_mul
 
 def main():
     global BTN_CLICK,BTN_CLICK_STR, WIN_WIDTH,WIN_HEIGHT, BORDER, filename
@@ -325,6 +329,7 @@ def main():
     ring_scale = 1
     ring_ballsformat, ring_rings, ring_balls = [], [], []
     vek_mul = -1
+    solved_ring = []
 
     # основная инициализация
     random.seed()
@@ -340,7 +345,7 @@ def main():
     while True:
         if not file_ext:
             fil = init_ring()
-            ring_name, ring_link, ring_scale, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
+            ring_name, ring_link, ring_scale, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
 
         DISPLAY = (WIN_WIDTH, WIN_HEIGHT+PANEL)  # Группируем ширину и высоту в одну переменную
         # инициализация окна
@@ -438,14 +443,14 @@ def main():
                                 fil = read_file("reset")
                                 if fil != "":
                                     file_ext = True
-                                    ring_name, ring_link, ring_scale, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
+                                    ring_name, ring_link, ring_scale, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
                                     fl_break = True
                         if BTN_CLICK_STR=="open" and not help:
                             fl_break = False
                             fil = read_file("open")
                             if fil != "":
                                 file_ext = True
-                                ring_name,ring_link, ring_scale, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, WIN_WIDTH,WIN_HEIGHT, vek_mul = fil
+                                ring_name,ring_link, ring_scale, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, solved_ring, WIN_WIDTH,WIN_HEIGHT, vek_mul = fil
                                 fl_break = True
 
                         if BTN_CLICK_STR=="info" and not help:
@@ -565,12 +570,19 @@ def main():
 
                     break
 
+            # скрамбл
             if scramble_move != 0:
                 scramble_move -= 1
                 moves_stack = []
                 moves = 0
                 continue
                 # отрисовка не нужна
+
+            # проверка на решенное состояние
+            solved = True
+            if len(moves_stack) > 0:
+                if ring_balls != solved_ring:
+                    solved = False
 
             #####################################################################################
             # отрисовка игрового поля
