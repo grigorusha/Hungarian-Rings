@@ -15,13 +15,13 @@ from tkinter import filedialog as fd
 import os
 
 BACKGROUND_COLOR = "#000000"
-GRAY_COLOR, GRAY_COLOR2 = "#808080", "#C0C0C0"
+GRAY_COLOR, GRAY_COLOR2, BLACK_COLOR = "#808080", "#C0C0C0", "#000000"
 WHITE_COLOR, RED_COLOR, GREEN_COLOR, BLUE_COLOR = "#FFFFFF", "#FF0000", "#008000", "#0000FF"
 GRADIENT_COLOR = [ [(255, 255, 255, 255), (120, 120, 120, 255)], [(70, 70, 70, 255), (0, 0, 0, 255)],      # 0 белый   1 черный
                    [(255, 50, 50, 255), (50, 0, 0, 255)], [(70, 180, 70, 255), (0, 50, 0, 255)],           # 2 красный 3 зеленый
                    [(50, 50, 255, 255), (0, 0, 50, 255)], [(250, 250, 50, 255), (50, 50, 0, 255)],         # 4 синий   5 желтый
-                   [(200, 50, 200, 255), (50, 0, 50, 255)], [(250, 200, 50, 255), (50, 50, 0, 255)],       # 6 фиолетовый 7 оранжевый
-                   [(50, 200, 250, 255), (0, 50, 50, 255)], [(50, 210, 200, 255), (0, 50, 50, 255)],       # 8 голубой 9 бирюзовый
+                   [(200, 50, 200, 255), (50, 0, 50, 255)], [(250, 170, 50, 255), (70, 50, 0, 255)],       # 6 фиолетовый 7 оранжевый
+                   [(50, 200, 250, 255), (0, 50, 50, 255)], [(0, 160, 160, 255), (0, 50, 50, 255)],       # 8 голубой 9 бирюзовый
                    [(190, 140, 140, 255), (50, 30, 30, 255)], [(250, 120, 190, 255), (70, 30, 50, 255)],   # 10 коричневый 11 розовый
                    [(200, 130, 250, 255), (50, 30, 70, 255)], [(0, 250, 0, 255), (0, 70, 00, 255)] ]       # 12 сиреневый 13 лайм
 
@@ -90,7 +90,7 @@ def check_circle(center_x,center_y, x,y, rad):
 def compare_xy(x,y,rr):
     return round(x,rr)==round(y,rr)
 
-def init_level():
+def init_ring():
     init = """
     Name: Golovolomka-8 (Головоломка-8)
     Link: https://twistypuzzles.com/cgi-bin/puzzle.cgi?pkey=4395
@@ -98,7 +98,7 @@ def init_level():
     Scale: 3
     Flip: rotate
     
-    # радиус шариков, тип (1-шар, 2-шайба)
+    # радиус шариков, размер маркера
     BallsFormat: 10.3, 1
     
     # Переменные
@@ -143,6 +143,12 @@ def init_level():
     fil = read_file("init",init)
     return fil
 
+def print_marker(game_scr,font_marker,txt,ball_x,ball_y):
+    if len(txt) > 0 and txt != "-":
+        text_marker = font_marker.render(txt, True, BLACK_COLOR)
+        text_marker_place = text_marker.get_rect(center=(ball_x, ball_y))
+        game_scr.blit(text_marker, text_marker_place)  # Пишем маркет
+
 def read_file(fl,init=""):
     global filename, BORDER, WIN_WIDTH, WIN_HEIGHT
 
@@ -163,6 +169,7 @@ def read_file(fl,init=""):
         with open(filename,'r') as f:
             lines = f.readlines()
 
+    # прочитаем файл
     for nom,stroka in enumerate(lines):
         stroka = stroka.replace('\n','')
         stroka = stroka.strip()
@@ -227,6 +234,7 @@ def read_file(fl,init=""):
                 ring_balls.append( [ param_mas[0],param_mas[1],xx,yy,int(param_mas[3]),param_mas[4],int(param_mas[5]),[] ] )
             else: return ""
 
+    # учтем масштаб
     if ring_scale != 1 and ring_scale != 0:
         ring_ballsformat[0] = ring_ballsformat[0]*ring_scale
         shift = ring_ballsformat[0]+BORDER
@@ -241,6 +249,7 @@ def read_file(fl,init=""):
     ball_radius = ring_ballsformat[0]
     ball_offset = (-int(ball_radius / 3), -int(ball_radius / 3))
 
+    # изменим размеры окна
     WIN_WIDTH, WIN_HEIGHT = 0, 0
     for ring in ring_rings:
         xx = ring[1] + ring[3] + ball_radius + BORDER
@@ -248,6 +257,7 @@ def read_file(fl,init=""):
         yy = ring[2] + ring[3] + ball_radius + BORDER
         WIN_HEIGHT = yy if yy > WIN_HEIGHT else WIN_HEIGHT
 
+    # учтем повороты
     vek_mul = -1
     if flip_x:
         vek_mul = -1 * vek_mul
@@ -289,7 +299,7 @@ def read_file(fl,init=""):
                     if ring_sec[0] != ball_sec[0]: continue
                     if ball_sec[6] == 0: continue
 
-                    if compare_xy(ball[2],ball_sec[2],4) and compare_xy(ball[3],ball_sec[3],4): # ball[2] == ball_sec[2] and ball[3] == ball_sec[3]
+                    if compare_xy(ball[2],ball_sec[2],2) and compare_xy(ball[3],ball_sec[3],2): # ball[2] == ball_sec[2] and ball[3] == ball_sec[3]
                         if len(ball[7])==0:
                             ball[7].append( ball_sec[0] )  # номер перекрестного кольца, номер шарика в нем
                             ball[7].append( ball_sec[1] )
@@ -329,7 +339,7 @@ def main():
     # перезапуск программы при смене параметров
     while True:
         if not file_ext:
-            fil = init_level()
+            fil = init_ring()
             ring_name, ring_link, ring_scale, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
 
         DISPLAY = (WIN_WIDTH, WIN_HEIGHT+PANEL)  # Группируем ширину и высоту в одну переменную
@@ -337,6 +347,7 @@ def main():
         screen = pygame.display.set_mode(DISPLAY)  # Создаем окошко
         win_caption = ring_name if ring_name != "" else "Hungarian Rings Simulator"
         pygame.display.set_caption(win_caption)  # Пишем в шапку
+        font_marker = pygame.font.SysFont('Verdana', ring_ballsformat[1])
 
         # инициализация окна с подсказкой
         HELP = (WIN_WIDTH//3+BORDER, WIN_HEIGHT//3+BORDER)
@@ -400,23 +411,22 @@ def main():
                     if (ev.type == KEYDOWN and ev.key == K_F2):
                         BTN_CLICK = True
                         BTN_CLICK_STR = "reset"
-                    if ev.type == MOUSEBUTTONDOWN:
-                        but = ev.button
-                    if ev.type == MOUSEBUTTONDOWN and ev.button == 1:
-                        help = False if help else help
 
-                        mouse_x = ev.pos[0]
-                        mouse_y = ev.pos[1]
-                        mouse_left = True
-                    if ev.type == MOUSEBUTTONDOWN and ev.button == 3:
+                    if ev.type == MOUSEBUTTONDOWN and ev.button == 1 and not BTN_CLICK:
+                        if not help:
+                            mouse_x = ev.pos[0]
+                            mouse_y = ev.pos[1]
+                            mouse_left = True
                         help = False if help else help
-
-                        mouse_x = ev.pos[0]
-                        mouse_y = ev.pos[1]
-                        mouse_right = True
-                    if ev.type == MOUSEBUTTONDOWN and ev.button == 5:
-                        BTN_CLICK = True
-                        BTN_CLICK_STR = "undo"
+                    if ev.type == MOUSEBUTTONDOWN and ev.button == 3 and not BTN_CLICK:
+                        if not help:
+                            mouse_x = ev.pos[0]
+                            mouse_y = ev.pos[1]
+                            mouse_right = True
+                        help = False if help else help
+                    # if ev.type == MOUSEBUTTONDOWN and ev.button == 5:
+                    #     BTN_CLICK = True
+                    #     BTN_CLICK_STR = "undo"
 
                     ################################################################################
                     # обработка нажатия на кнопки
@@ -447,7 +457,7 @@ def main():
 
                         if BTN_CLICK_STR=="scramble" and not help:
                             fl_break = False
-                            scramble_move = 1000
+                            scramble_move = 3000
                         if BTN_CLICK_STR=="undo" and not help:
                             fl_break = False
                             if len(moves_stack) > 0:
@@ -502,8 +512,10 @@ def main():
                             if ring_num!=ball[0]:
                                 if ball[6]==0:
                                     game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset),(ball_x - ball_radius, ball_y - ball_radius))
+                                    print_marker(game_scr, font_marker, ball[5], ball_x, ball_y)
                                 elif ball[7][0]!=ring_num:
                                     game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset),(ball_x - ball_radius, ball_y - ball_radius))
+                                    print_marker(game_scr, font_marker, ball[5], ball_x, ball_y)
                             else:
                                 angle_sector = ring_rings[ring_num-1][6] / step
                                 radius = ring_rings[ring_num-1][3]
@@ -513,6 +525,7 @@ def main():
                                 angle_cos, angle_sin = math.cos(ang), math.sin(ang)
                                 xx, yy = angle_cos * radius + center_x, angle_sin * radius + center_y
                                 game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset), (xx-ball_radius, yy-ball_radius))
+                                print_marker(game_scr, font_marker, ball[5], xx, yy)
                         screen.blit(game_scr, (0, 0))
                         pygame.display.update()
 
@@ -589,6 +602,8 @@ def main():
             for ball in ring_balls:
                 ball_x,ball_y = ball[2],ball[3]
                 game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset), (ball_x-ball_radius, ball_y-ball_radius))
+                print_marker(game_scr,font_marker,ball[5],ball_x,ball_y)
+
             screen.blit(game_scr, (0, 0))
 
             # окно помощи
