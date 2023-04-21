@@ -143,9 +143,12 @@ def init_ring():
     fil = read_file("init",init)
     return fil
 
-def print_marker(game_scr,font_marker,txt,ball_x,ball_y):
+def print_marker(game_scr,font_marker,txt,ball_x,ball_y, ball_color):
     if len(txt) > 0 and txt != "-":
-        text_marker = font_marker.render(txt, True, BLACK_COLOR)
+        if ball_color != 1:
+            text_marker = font_marker.render(txt, True, BLACK_COLOR)
+        else:
+            text_marker = font_marker.render(txt, True, WHITE_COLOR)
         text_marker_place = text_marker.get_rect(center=(ball_x, ball_y))
         game_scr.blit(text_marker, text_marker_place)  # Пишем маркет
 
@@ -153,7 +156,7 @@ def read_file(fl,init=""):
     global filename, BORDER, WIN_WIDTH, WIN_HEIGHT
 
     flip_y = flip_x = flip_rotate = False
-    ring_name, ring_scale = "", 1
+    ring_name, ring_scale, ring_speed = "", 1, 3
     param_calc, ring_ballsformat, ring_rings, ring_balls, ring_link, solved_ring = [], [], [], [], [], []
 
     if fl == "init":
@@ -198,6 +201,8 @@ def read_file(fl,init=""):
             ring_link.append(params)
         elif command == "Scale":
             ring_scale = float(params)
+        elif command == "Speed":
+            ring_speed = float(params)
         elif command == "Flip":
             if params.lower().find("y")>=0:
                 flip_y = True
@@ -308,6 +313,7 @@ def read_file(fl,init=""):
                         if len(ball_sec[7])==0:
                             ball_sec[7].append( ball[0] )
                             ball_sec[7].append( ball[1] )
+                        ball_sec[4], ball_sec[5] = ball[4], ball[5]
                         fl_break = True
 
                     if fl_break: break
@@ -315,7 +321,7 @@ def read_file(fl,init=""):
 
     solved_ring = copy.deepcopy(ring_balls)
 
-    return ring_name,ring_link, ring_scale, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, solved_ring, WIN_WIDTH,WIN_HEIGHT, vek_mul
+    return ring_name,ring_link, ring_scale,ring_speed, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, solved_ring, WIN_WIDTH,WIN_HEIGHT, vek_mul
 
 def main():
     global BTN_CLICK,BTN_CLICK_STR, WIN_WIDTH,WIN_HEIGHT, BORDER, filename
@@ -326,7 +332,7 @@ def main():
     offset = (-int(ball_radius / 3), -int(ball_radius / 3))
 
     ring_name = ring_link = ""
-    ring_scale = 1
+    ring_scale, ring_speed = 1, 3
     ring_ballsformat, ring_rings, ring_balls = [], [], []
     vek_mul = -1
     solved_ring = []
@@ -345,7 +351,7 @@ def main():
     while True:
         if not file_ext:
             fil = init_ring()
-            ring_name, ring_link, ring_scale, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
+            ring_name, ring_link, ring_scale, ring_speed, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
 
         DISPLAY = (WIN_WIDTH, WIN_HEIGHT+PANEL)  # Группируем ширину и высоту в одну переменную
         # инициализация окна
@@ -413,9 +419,15 @@ def main():
                         return SystemExit, "QUIT"
                     if (ev.type == KEYDOWN and ev.key == K_ESCAPE):
                         help = False if help else help
+                    if (ev.type == KEYDOWN and ev.key == K_F1):
+                        BTN_CLICK = True
+                        BTN_CLICK_STR = "help"
                     if (ev.type == KEYDOWN and ev.key == K_F2):
                         BTN_CLICK = True
                         BTN_CLICK_STR = "reset"
+                    if (ev.type == KEYDOWN and ev.key == K_F3):
+                        BTN_CLICK = True
+                        BTN_CLICK_STR = "open"
 
                     if ev.type == MOUSEBUTTONDOWN and ev.button == 1 and not BTN_CLICK:
                         if not help:
@@ -443,14 +455,14 @@ def main():
                                 fil = read_file("reset")
                                 if fil != "":
                                     file_ext = True
-                                    ring_name, ring_link, ring_scale, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
+                                    ring_name, ring_link, ring_scale, ring_speed, ring_ballsformat, ring_rings, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
                                     fl_break = True
                         if BTN_CLICK_STR=="open" and not help:
                             fl_break = False
                             fil = read_file("open")
                             if fil != "":
                                 file_ext = True
-                                ring_name,ring_link, ring_scale, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, solved_ring, WIN_WIDTH,WIN_HEIGHT, vek_mul = fil
+                                ring_name,ring_link, ring_scale, ring_speed, ring_ballsformat,ring_rings,ring_balls, ball_radius,ball_offset, solved_ring, WIN_WIDTH,WIN_HEIGHT, vek_mul = fil
                                 fl_break = True
 
                         if BTN_CLICK_STR=="info" and not help:
@@ -505,9 +517,14 @@ def main():
 
                 # анимация
                 if scramble_move == 0:
-                    step = ring_scale * 7
+                    angle_sector = ring_rings[ring_num - 1][6]
+                    radius = ring_rings[ring_num - 1][3]
+                    step = int(radius*angle_sector)
+                    # step_mul = 2 if step<20 else 3 if step<60 else 4 if step<100 else 5
+                    step = step // ring_speed
+
                     for count in range(int(step)):
-                        timer.tick(1000)
+                        timer.tick(300)
                         game_scr.fill(Color(GRAY_COLOR))
                         for ring in ring_rings:
                             draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] - ball_radius, 2)
@@ -517,20 +534,18 @@ def main():
                             if ring_num!=ball[0]:
                                 if ball[6]==0:
                                     game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset),(ball_x - ball_radius, ball_y - ball_radius))
-                                    print_marker(game_scr, font_marker, ball[5], ball_x, ball_y)
+                                    print_marker(game_scr, font_marker, ball[5], ball_x, ball_y, ball[4])
                                 elif ball[7][0]!=ring_num:
                                     game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset),(ball_x - ball_radius, ball_y - ball_radius))
-                                    print_marker(game_scr, font_marker, ball[5], ball_x, ball_y)
+                                    print_marker(game_scr, font_marker, ball[5], ball_x, ball_y, ball[4])
                             else:
-                                angle_sector = ring_rings[ring_num-1][6] / step
-                                radius = ring_rings[ring_num-1][3]
                                 center_x, center_y = ring_rings[ring_num-1][1], ring_rings[ring_num-1][2]
                                 angle, grad = calc_angle(center_x,center_y, ball_x,ball_y, radius)
-                                ang = round(angle + vek * count*angle_sector * vek_mul,10)
+                                ang = round(angle + vek * vek_mul * count*angle_sector/step,10)
                                 angle_cos, angle_sin = math.cos(ang), math.sin(ang)
                                 xx, yy = angle_cos * radius + center_x, angle_sin * radius + center_y
                                 game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset), (xx-ball_radius, yy-ball_radius))
-                                print_marker(game_scr, font_marker, ball[5], xx, yy)
+                                print_marker(game_scr, font_marker, ball[5], xx, yy, ball[4])
                         screen.blit(game_scr, (0, 0))
                         pygame.display.update()
 
@@ -614,7 +629,7 @@ def main():
             for ball in ring_balls:
                 ball_x,ball_y = ball[2],ball[3]
                 game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset), (ball_x-ball_radius, ball_y-ball_radius))
-                print_marker(game_scr,font_marker,ball[5],ball_x,ball_y)
+                print_marker(game_scr,font_marker,ball[5],ball_x,ball_y, ball[4])
 
             screen.blit(game_scr, (0, 0))
 
