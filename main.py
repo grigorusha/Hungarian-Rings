@@ -75,11 +75,13 @@ def calc_param(eval,param_calc):
 def calc_angle(center_x,center_y, x,y, rad):
     x,y = x-center_x,y-center_y
     cos = x/rad
-    angle = math.acos(round(cos,10))
-    grad = angle*180/math.pi
-    if y<0:
-        grad = 360 - grad
-        angle = 2*math.pi - angle
+    if -1 <= cos <= 1:
+        angle = math.acos(round(cos,10))
+        grad = angle*180/math.pi
+        if y<0:
+            grad = 360 - grad
+            angle = 2*math.pi - angle
+    else: angle = grad = 0
     return angle,grad
 
 def check_circle(center_x,center_y, x,y, rad):
@@ -96,18 +98,19 @@ def init_ring():
     Link: https://twistypuzzles.com/cgi-bin/puzzle.cgi?pkey=4395
     
     Scale: 3
+    Speed: 3
     Flip: rotate
     
     # радиус шариков, размер маркера
-    BallsFormat: 10.3, 1
+    BallsFormat: 10.3, 10
     
     # Переменные
     Param: pos_ball1, 40+20*sqrt(2) # 68.28427125
     Param: pos_ball2, 45+20*sqrt(2) # 73.28427125
     
-    # номер кольца, координаты x y, радиус, количество шариков в кольце, направление заполнения
-    Ring: 1, 40,          45, 40,          12, -1
-    Ring: 2, 100.21061364,45, 42.65315156, 13, -1
+    # номер кольца, координаты x y, радиус, количество шариков в кольце, направление заполнения, кольцо круглое
+    Ring: 1, 40,          45, 40,          12, -1, 1
+    Ring: 2, 100.21061364,45, 42.65315156, 13, -1, 1
     
     # цвета: 0 белый, 1 черный, 2 красный, 3 зеленый, 4 синий, 5 желтый, 6 фиолетовый
     # цвета: 7 оранжевый, 8 голубой, 9 бирюзовый, 10 коричневый, 11 розовый, 12 сиреневый, 13 лайм
@@ -218,10 +221,10 @@ def read_file(fl,init=""):
             param_mas[1] = eval(param_mas[1])
             param_calc.append([param_mas[0], param_mas[1]])
         elif command == "Ring":
-            if len(param_mas) != 6: return ""
+            if len(param_mas) != 7: return ""
             param_mas[1],param_mas[2],param_mas[3] = calc_param(param_mas[1],param_calc), calc_param(param_mas[2],param_calc), calc_param(param_mas[3],param_calc)
             angle_sector = math.pi*2/int(param_mas[4])
-            ring_rings.append( [ int(param_mas[0]),param_mas[1],param_mas[2],param_mas[3],int(param_mas[4]),int(param_mas[5]),angle_sector ] )
+            ring_rings.append( [ int(param_mas[0]),param_mas[1],param_mas[2],param_mas[3],int(param_mas[4]),int(param_mas[5]),angle_sector,int(param_mas[6]) ] )
         elif command == "Ball":
             if len(param_mas)==7:
                 param_mas[2],param_mas[3],param_mas[0] = calc_param(param_mas[2],param_calc),calc_param(param_mas[3],param_calc),int(param_mas[0])
@@ -259,9 +262,15 @@ def read_file(fl,init=""):
     # изменим размеры окна
     WIN_WIDTH, WIN_HEIGHT = 0, 0
     for ring in ring_rings:
-        xx = ring[1] + ring[3] + ball_radius + BORDER
+        if ring[7]!=0:
+            xx = ring[1] + ring[3] + ball_radius + BORDER
+            WIN_WIDTH = xx if xx > WIN_WIDTH else WIN_WIDTH
+            yy = ring[2] + ring[3] + ball_radius + BORDER
+            WIN_HEIGHT = yy if yy > WIN_HEIGHT else WIN_HEIGHT
+    for ball in ring_balls:
+        xx = ball[2] + ball_radius + BORDER
         WIN_WIDTH = xx if xx > WIN_WIDTH else WIN_WIDTH
-        yy = ring[2] + ring[3] + ball_radius + BORDER
+        yy = ball[3] + ball_radius + BORDER
         WIN_HEIGHT = yy if yy > WIN_HEIGHT else WIN_HEIGHT
 
     # учтем повороты
@@ -428,14 +437,17 @@ def main():
                     if (ev.type == KEYDOWN and ev.key == K_F3):
                         BTN_CLICK = True
                         BTN_CLICK_STR = "open"
+                    if (ev.type == KEYDOWN and ev.key == K_SPACE):
+                        BTN_CLICK = True
+                        BTN_CLICK_STR = "undo"
 
-                    if ev.type == MOUSEBUTTONDOWN and ev.button == 1 and not BTN_CLICK:
+                    if ev.type == MOUSEBUTTONDOWN and (ev.button == 1 or ev.button == 4) and not BTN_CLICK:
                         if not help:
                             mouse_x = ev.pos[0]
                             mouse_y = ev.pos[1]
                             mouse_left = True
                         help = False if help else help
-                    if ev.type == MOUSEBUTTONDOWN and ev.button == 3 and not BTN_CLICK:
+                    if ev.type == MOUSEBUTTONDOWN and (ev.button == 3 or ev.button == 5) and not BTN_CLICK:
                         if not help:
                             mouse_x = ev.pos[0]
                             mouse_y = ev.pos[1]
@@ -516,7 +528,7 @@ def main():
             if ring_num>0:
 
                 # анимация
-                if scramble_move == 0:
+                if scramble_move == 0 and ring_rings[ring_num - 1][7] != 0:
                     angle_sector = ring_rings[ring_num - 1][6]
                     radius = ring_rings[ring_num - 1][3]
                     step = int(radius*angle_sector)
