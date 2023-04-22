@@ -437,7 +437,11 @@ def main():
                     if (ev.type == KEYDOWN and ev.key == K_F3):
                         BTN_CLICK = True
                         BTN_CLICK_STR = "open"
+
                     if (ev.type == KEYDOWN and ev.key == K_SPACE):
+                        BTN_CLICK = True
+                        BTN_CLICK_STR = "undo"
+                    if ev.type == MOUSEBUTTONDOWN and (ev.button == 2 or ev.button == 6 or ev.button == 7):
                         BTN_CLICK = True
                         BTN_CLICK_STR = "undo"
 
@@ -453,9 +457,6 @@ def main():
                             mouse_y = ev.pos[1]
                             mouse_right = True
                         help = False if help else help
-                    # if ev.type == MOUSEBUTTONDOWN and ev.button == 5:
-                    #     BTN_CLICK = True
-                    #     BTN_CLICK_STR = "undo"
 
                     ################################################################################
                     # обработка нажатия на кнопки
@@ -505,7 +506,7 @@ def main():
                     if mouse_x<WIN_WIDTH and mouse_y<WIN_HEIGHT:
                         ring_pos = []
                         for ring in ring_rings:
-                            pos = check_circle(ring[1], ring[2], mouse_x, mouse_y, ring[3])
+                            pos = check_circle(ring[1], ring[2], mouse_x, mouse_y, ring[3]+ball_radius)
                             if pos[0]:
                                 ring_pos.append( (ring[0], pos[1]) )
                         if len(ring_pos)>0: # есть внутри круга
@@ -563,7 +564,9 @@ def main():
 
                 #############################################################################
                 # перемещение
-                ball_kol = ring_rings[ring_num-1][4]
+                for ring in ring_rings:
+                    if ring[0]==ring_num:
+                        ball_kol = ring[4]
                 for nn,ball in enumerate(ring_balls):
                     if ball[0] != ring_num: continue
 
