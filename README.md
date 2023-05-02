@@ -1,8 +1,9 @@
 # Hungarian Rings - Puzzle Simulator
 
 This is a simulator of the famous "Hungarian Rings" puzzle.
+this is a small python program that uses the pygame library
 
-### **<a href="https://twistypuzzles.com/forum/viewtopic.php?p=422931#p422931">my Puzzles progect page</a>**
+### **<a href="https://twistypuzzles.com/forum/viewtopic.php?p=422931#p422931">forum page with my other Puzzle simulators</a>**
 
 You can create a text file with a script that describes the location of rings, balls and their colors.
 Each ball can be marked with a marker (letter or number) to make the puzzle harder to solve.
