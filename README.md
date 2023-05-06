@@ -3,7 +3,7 @@
 This is a simulator of the famous "Hungarian Rings" puzzle.
 this is a small python program that uses the pygame library
 
-### **<a href="https://drive.google.com/drive/folders/1vhLT2MYgWODgADyqb5bOiqOf8SHESx4X?usp=share_link">Download EXEcutable file for Hungarian Rings Simulator</a>**
+### **<a href="https://sourceforge.net/projects/hungarianrings/files/">Download EXEcutable file for Hungarian Rings Simulator</a>**
 ### **<a href="https://twistypuzzles.com/forum/viewtopic.php?p=422931#p422931">forum page with my other Puzzle simulators</a>**
 
 You can create a text file with a script that describes the location of rings, balls and their colors.
