@@ -22,6 +22,7 @@ I have created files for all the ring puzzles, you can download them from the "R
 - **F1** - opens a small hint window showing the initial state of the puzzle.
 - **F2** - reset the puzzle to its initial state.
 - **F3** - opening a file with a new ring-puzzle
+- **F4** - automatic scramble puzzle
 ### Programm button
 - **Reset** - reset the puzzle to its initial state.
 - **Scramble** - automatic scramble puzzle
@@ -34,7 +35,7 @@ I have created files for all the ring puzzles, you can download them from the "R
 ## The program supports various types of puzzles with rings
 Rings with different number of balls
 
-![](https://i.imgur.com/kaYIocN.png)
+![](https://i.imgur.com/fOsbdpS.png)
 
 You can make a marker on each ball (letters and numbers) so that each ball becomes unique. These puzzles are harder to solve.
 
@@ -44,7 +45,7 @@ You can make a marker on each ball (letters and numbers) so that each ball becom
 
 You can set an arbitrary number of rings
 
-![](https://i.imgur.com/VJRdXRd.png)
+![](https://i.imgur.com/HR41tOQ.png)
 
 Can make very large and complex puzzles
 
@@ -52,6 +53,6 @@ Can make very large and complex puzzles
 
 Can customize the puzzle with arbitrary orbits
 
-![](https://i.imgur.com/DIYerz1.png)
+![](https://i.imgur.com/sWOOfl5.png)
 
-![](https://i.imgur.com/ZLpQRoM.png)
+![](https://i.imgur.com/KRnYv3d.png)
