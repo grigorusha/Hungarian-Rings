@@ -16,7 +16,6 @@ from tkinter import Tk
 from tkinter import filedialog as fd
 import os
 
-
 BACKGROUND_COLOR = "#000000"
 GRAY_COLOR, GRAY_COLOR2, BLACK_COLOR = "#808080", "#C0C0C0", "#000000"
 WHITE_COLOR, RED_COLOR, GREEN_COLOR, BLUE_COLOR = "#FFFFFF", "#FF0000", "#008000", "#0000FF"
@@ -804,7 +803,7 @@ def main():
                             game_scr.fill(Color(GRAY_COLOR))
 
                             for ring in ring_rings:
-                                draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] - ball_radius, 2)
+                                draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] - ball_radius, 1)
                                 if ring[0] == ring_move:
                                     draw.circle(game_scr, WHITE_COLOR, (ring[1], ring[2]), ring[3] + ball_radius + 3, 3)
                                 else:
@@ -842,7 +841,7 @@ def main():
 
                             for ring in ring_rings:
                                 if ring[7] == 0: continue
-                                draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] - ball_radius, 2)
+                                draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] - ball_radius, 1)
                                 if ring[0] == ring_move:
                                     draw.circle(game_scr, WHITE_COLOR, (ring[1], ring[2]), ring[3] + ball_radius + 3, 3)
                                 else:
