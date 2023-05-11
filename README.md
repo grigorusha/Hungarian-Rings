@@ -1,6 +1,7 @@
 # Hungarian Rings - Puzzle Simulator
 
 This is a simulator of the famous "Hungarian Rings" puzzle.  I added 50 different puzzles.
+
 this is a small python program that uses the pygame library
 
 ### **<a href="https://sourceforge.net/projects/hungarianrings/files/">Download EXEcutable file for Hungarian Rings Simulator</a>** 
