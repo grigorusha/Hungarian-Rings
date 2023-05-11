@@ -1,12 +1,12 @@
 import pygame
 from pygame import *
-
 import pygame_widgets
 from pygame_widgets.button import Button
 
 import math
 from math import sqrt,cos,sin,pi
 from scipy.interpolate import CubicSpline
+#from pycubicspline import calc_2d_spline
 
 import random
 import copy
@@ -87,8 +87,10 @@ def calc_param(eval,param_calc):
     eval = float(eval)
     return eval
 
-def calc_angle(center_x,center_y, x,y, rad):
+def calc_angle(center_x,center_y, x,y, rad=0):
     x,y = x-center_x,y-center_y
+    if rad==0: rad = sqrt(x*x+y*y)
+
     cos = round(x/rad,8)
     if -1 <= cos <= 1:
         angle = math.acos(round(cos,10))
@@ -503,18 +505,65 @@ def read_file(fl,init=""):
             input_y.append(input_y[0])
 
             xx,yy = centroid(input_x, input_y)
-
             step = len(input_x)
+
+            # bye bye scipy
             theta, pos = [], []
             for nn in range(0, step):
                 angle, grad = nn*(2*pi/step), nn*(360/step)
                 theta.append(angle)
                 pos.append([input_x[nn], input_y[nn]])
             cs = CubicSpline(theta, pos, bc_type='periodic')
-
             input_x.pop()
             input_y.pop()
             orbit_mas.append( [ nom,step-1, [xx,yy], [input_x, input_y], cs ] )
+
+            # spline_x, spline_y = calc_2d_spline(input_x, input_y, num=step*10)
+            #
+            # input_x.pop()
+            # input_y.pop()
+            #
+            # input_xy, spline_xy = [],[]
+            # for nn in range(len(input_x)):
+            #     input_xy.append((input_x[nn], input_y[nn]))
+            # for nn in range(len(spline_x)):
+            #     spline_xy.append((spline_x[nn], spline_y[nn]))
+            #
+            # shift_xy1, shift_xy2, shift_x1, shift_y1, shift_x2, shift_y2 = [],[],[],[],[],[]
+            # shift = ball_radius+2
+            # for nn,pos_xy in enumerate(input_xy):
+            #     xx0,yy0 = pos_xy
+            #     if nn+1==len(input_xy):
+            #         xx2,yy2 = input_xy[0]
+            #     else:
+            #         xx2, yy2 = input_xy[nn+1]
+            #     xx3,yy3 = input_xy[nn-1]
+            #
+            #     ang1,grd1 = calc_angle(xx0,yy0, xx2,yy2)
+            #     ang2,grd2 = calc_angle(xx0,yy0, xx3,yy3)
+            #
+            #     ang11,ang22,grd11,grd22 = ang1-ang2,pi+ang1-ang2, grd1-grd2, 180+grd1-grd2
+            #
+            #     sh_x1,sh_y1 = (shift+2)*sin(ang11)+xx0,(shift+2)*cos(ang11)+yy0
+            #     sh_x2,sh_y2 = shift*sin(ang22)+xx0,shift*cos(ang22)+yy0
+            #
+            #     shift_x1.append(sh_x1)
+            #     shift_y1.append(sh_y1)
+            #     shift_x2.append(sh_x2)
+            #     shift_y2.append(sh_y2)
+            #
+            #     shift_xy1.append((sh_x1, sh_y1))
+            #     shift_xy2.append((sh_x2, sh_y2))
+            #
+            # spline_sh_x1, spline_sh_y1 = calc_2d_spline(shift_x1, shift_y1, num=step*10)
+            # spline_sh_x2, spline_sh_y2 = calc_2d_spline(shift_x2, shift_y2, num=step*10)
+            # spline_sh1, spline_sh2 = [],[]
+            # for nn in range(len(spline_sh_x1)):
+            #     spline_sh1.append((spline_sh_x1[nn], spline_sh_y1[nn]))
+            # for nn in range(len(spline_sh_x2)):
+            #     spline_sh2.append((spline_sh_x2[nn], spline_sh_y2[nn]))
+            #
+            # orbit_mas.append( [ nom,step-1, [xx,yy], input_xy, spline_xy, shift_xy1, spline_sh1, shift_xy2, spline_sh2 ] )
 
     solved_ring = copy.deepcopy(ring_balls)
 
@@ -522,6 +571,13 @@ def read_file(fl,init=""):
 
 def main():
     global BTN_CLICK,BTN_CLICK_STR, WIN_WIDTH,WIN_HEIGHT, BORDER, filename
+
+    try:
+        import pyi_splash
+        pyi_splash.update_text('UI Loaded ...')
+        pyi_splash.close()
+    except:
+        pass
 
     file_ext = False
 
@@ -570,7 +626,7 @@ def main():
         pygame.display.set_caption(win_caption)  # Пишем в шапку
         font_marker = pygame.font.SysFont('Verdana', ring_ballsformat[1])
 
-        scramble_move = scramble_move_all = scramble_move_first = ring_num_pred = kol_step = 0
+        scramble_move = scramble_move_all = scramble_move_first = ring_num_pred = orbit_num_pred = kol_step = 0
         moves_stack = []
         moves = 0
         solved = True
@@ -715,12 +771,12 @@ def main():
                             scramble_move = ball_kol * 15
                             mul = 2 if ball_kol<100 else 1
                             scramble_move_all = scramble_move_first = ball_kol * mul
-                            ring_num_pred = kol_step = 0
+                            ring_num_pred = orbit_num_pred = kol_step = 0
 
                         if BTN_CLICK_STR=="undo" and not help:
                             fl_break = False
                             if len(moves_stack) > 0:
-                                ring_num, vek = moves_stack.pop()
+                                ring_num, vek, orbit_num = moves_stack.pop()
                                 vek = -vek
                                 moves -= 1
                                 undo = True
@@ -731,7 +787,7 @@ def main():
 
                 ################################################################################
                 # обработка перемещения и нажатия в игровом поле
-                if mouse_xx + mouse_yy > 0 and not help:
+                if mouse_xx + mouse_yy > 0 and not help and not undo:
                     if mouse_xx<WIN_WIDTH and mouse_yy<WIN_HEIGHT:
                         ring_pos = []
                         for ring in ring_rings:
@@ -766,11 +822,16 @@ def main():
                     while True:
                         ring_num = random.randint(1, len(ring_rings))
                         kol_step = random.randint(1, ring_rings[ring_num-1][4]//2)
-                        if orbit_format != 1:
+                        if orbit_format == 0:
                             orbit_num = ring_rings[ring_num-1][6]
-                        if ring_num_pred != ring_num:
-                            ring_num_pred = ring_num
-                            break
+                            if orbit_num_pred != orbit_num:
+                                orbit_num_pred = orbit_num
+                                ring_num_pred = ring_num
+                                break
+                        else:
+                            if ring_num_pred != ring_num:
+                                ring_num_pred = ring_num
+                                break
 
             ################################################################################
             # логика игры - выполнение перемещений
@@ -831,10 +892,11 @@ def main():
                             pygame.display.update()
 
                     else:
-                        step = ball_radius*2
-                        step = step / (ring_speed*speed_mul)
+                        step = ball_radius*2 / ring_speed
+                        step = step / speed_mul
+                        # step = 10
 
-                        for count in range(1,int(step)):
+                        for count in range(0,int(step)):
                             timer.tick(300)
                             events = pygame.event.get()
                             game_scr.fill(Color(GRAY_COLOR))
@@ -848,7 +910,7 @@ def main():
                                     draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] + ball_radius + 3, 2)
                             for ball in ring_balls:
                                 ball_x,ball_y = ball[2],ball[3]
-                                if ball[8]!=orbit_num:
+                                if ball[8]!=orbit_num or count==0:
                                     if ball[6]==0:
                                         game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset),(ball_x - ball_radius, ball_y - ball_radius))
                                         print_marker(game_scr, font_marker, ball[5], ball_x, ball_y, ball[4])
@@ -856,8 +918,6 @@ def main():
                                         game_scr.blit(gradient_circle(ball_radius, GRADIENT_COLOR[ball[4]], True, 1, offset=ball_offset),(ball_x - ball_radius, ball_y - ball_radius))
                                         print_marker(game_scr, font_marker, ball[5], ball_x, ball_y, ball[4])
                                 else:
-                                    # if ball[1]!=4: continue
-
                                     orbit_len = orbit_mas[ball[8]-1][1]
                                     for pos in range(orbit_len):
                                         if orbit_mas[ball[8]-1][3][0][pos]==ball_x and orbit_mas[ball[8]-1][3][1][pos]==ball_y:
@@ -914,7 +974,7 @@ def main():
 
                     if not undo:
                         moves += 1
-                        moves_stack.append([ring_num, vek])
+                        moves_stack.append([ring_num, vek, orbit_num])
                     break
 
             # скрамбл
@@ -922,7 +982,7 @@ def main():
                 scramble_move -= 1
                 if scramble_move == 0:
                     moves_stack = []
-                    moves = ring_num = vek = scramble_move_all = kol_step = 0
+                    moves = ring_num = vek = orbit_num = scramble_move_all = kol_step = 0
                 continue # отрисовка не нужна
 
             # проверка на решенное состояние
@@ -955,7 +1015,7 @@ def main():
             ############################################
             game_scr.fill(Color(GRAY_COLOR))
             # отрисовка контуров
-            # if orbit_format==1:
+            #if orbit_format==1:
             for ring in ring_rings:
                 if orbit_format==0:
                     if ring[7]==0: continue
@@ -965,20 +1025,10 @@ def main():
                 else:
                     draw.circle(game_scr,GRAY_COLOR2,(ring[1],ring[2]), ring[3]+ball_radius+3, 2)
             # else:
+            #     # тестовый вывод траектории, а нужен контур
             #     for orbit in orbit_mas:
-            #         orbit_len = orbit[1]
-            #         cen_x,cen_y = orbit[2]
-            #         cs = orbit[4]
-            #         mul = 20
-            #         for nn in range(0, orbit_len * mul):
-            #             angle = 2 * math.pi * nn / (orbit_len * mul)
-            #             angle2 = 2 * math.pi * (nn+1) / (orbit_len * mul)
-            #             xx,yy,xx2,yy2, = cs(angle)[0],cs(angle)[1],cs(angle2)[0],cs(angle2)[1]
-            #             draw.line(game_scr, GRAY_COLOR2, (xx, yy), (xx2, yy2), 2)
-                        # dx,dy,dx2,dy2 = xx-cen_x, yy-cen_y,xx2-cen_x, yy2-cen_y
-                        # rad,rad2 = sqrt(dx**2+dy**2),sqrt(dx2**2+dy2**2)
-                        # xx_,yy_,xx2_,yy2_ = xx*(rad+ball_radius)/rad,yy*(rad+ball_radius)/rad,xx2*(rad2+ball_radius)/rad2,yy2*(rad2+ball_radius)/rad2
-                        # draw.line(game_scr, GRAY_COLOR2, (xx_, yy_), (xx2_, yy2_), 3)
+            #         draw.polygon(game_scr, GRAY_COLOR2, orbit[6], 2)
+            #         draw.polygon(game_scr, GRAY_COLOR2, orbit[8], 2)
 
             # отрисовка шариков
             for ball in ring_balls:
