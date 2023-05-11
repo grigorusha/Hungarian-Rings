@@ -5,7 +5,7 @@ This is a simulator of the famous "Hungarian Rings" puzzle.  I added 50 differen
 this is a small python program that uses the pygame library
 
 ### **<a href="https://sourceforge.net/projects/hungarianrings/files/">Download EXEcutable file for Hungarian Rings Simulator</a>** 
-[![Download Hungarian Rings](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/hungarianrings/files/latest/download)
+[![Download Hungarian Rings](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/hungarianrings/files/Hungarian%20Rings%20Setup.exe/download)
 
 ### **<a href="https://twistypuzzles.com/forum/viewtopic.php?p=422931#p422931">forum page with my other Puzzle simulators</a>**
 
