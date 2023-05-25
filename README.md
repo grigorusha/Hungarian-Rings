@@ -60,3 +60,7 @@ Can customize the puzzle with arbitrary orbits
 ![](https://i.imgur.com/FCGHtKG.png)
 
 ![](https://i.imgur.com/57GT6Mi.png)
+
+Help modes for solving
+
+![](https://i.imgur.com/nrtNHkr.png)
