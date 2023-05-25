@@ -57,6 +57,6 @@ Can make very large and complex puzzles
 
 Can customize the puzzle with arbitrary orbits
 
-![](https://i.imgur.com/sWOOfl5.png)
+![](https://i.imgur.com/FCGHtKG.png)
 
-![](https://i.imgur.com/KRnYv3d.png)
+![](https://i.imgur.com/57GT6Mi.png)
