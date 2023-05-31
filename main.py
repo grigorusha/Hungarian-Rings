@@ -27,7 +27,7 @@ GRADIENT_COLOR = [[(255, 255, 255, 255), (120, 120, 120, 255)], [(70, 70, 70, 25
                   [(200, 50, 200, 255), (50, 0, 50, 255)], [(250, 170, 50, 255), (70, 50, 0, 255)],     # 6 фиолетовый 7 оранжевый
                   [(50, 200, 250, 255), (0, 50, 50, 255)], [(0, 160, 160, 255), (0, 50, 50, 255)],      # 8 голубой 9 бирюзовый
                   [(190, 140, 140, 255), (50, 30, 30, 255)], [(250, 120, 190, 255), (70, 30, 50, 255)], # 10 коричневый 11 розовый
-                  [(200, 130, 250, 255), (50, 30, 70, 255)], [(0, 250, 0, 255), (0, 70, 00, 255)],      # 12 сиреневый 13 лайм
+                  [(200, 130, 250, 255), (50, 30, 70, 255)], [(70, 250, 70, 255), (0, 70, 0, 255)],      # 12 сиреневый 13 лайм
                   [(200, 200, 200, 255), (50, 50, 50, 255)]]                                            # 14 серый
 SPRITE_MAS = []
 
@@ -192,7 +192,7 @@ def check_polygon(center_x, center_y, x, y, polygon):
 def check_circle(center_x, center_y, x, y, rad):
     x, y = x - center_x, y - center_y
     length = sqrt(x * x + y * y)
-    return (length < rad, length / rad)
+    return (length < rad, length*rad)
 
 def compare_xy(x, y, rr):
     return round(x, rr) == round(y, rr)
@@ -473,6 +473,19 @@ def read_file(fl, init=""):
             xx, yy = angle_cos * len_line * num + pos_x, angle_sin * len_line * num + pos_y
             ball[2], ball[3] = xx, yy
 
+    # выровняем относительно осей. чтобы не было сильных сдвигов
+    for nn,ball in enumerate(ring_balls):
+        if nn==0:
+            min_x, min_y = ball[2], ball[3]
+        else:
+            min_x, min_y = min(min_x,ball[2]), min(min_y,ball[3])
+    for ring in ring_rings:
+        ring[1],ring[2] = ring[1]-min_x, ring[2]-min_y
+    for line in ring_lines:
+        line[1],line[2] = line[1]-min_x, line[2]-min_y
+    for ball in ring_balls:
+        ball[2],ball[3] = ball[2]-min_x, ball[3]-min_y
+
     # учтем масштаб
     if ring_scale != 0:
         ring_ballsformat[0] =  ring_ballsformat[0] * ring_scale
@@ -484,13 +497,33 @@ def read_file(fl, init=""):
         for line in ring_lines:
             line[1] = line[1] * ring_scale + shift
             line[2] = line[2] * ring_scale + shift
-            line[4] = line[4] * ring_scale + shift
+            # line[4] = line[4] * ring_scale + shift
         for ball in ring_balls:
             ball[2] = ball[2] * ring_scale + shift
             ball[3] = ball[3] * ring_scale + shift
 
     ball_radius = ring_ballsformat[0]
     ball_offset = (-int(ball_radius / 3), -int(ball_radius / 3))
+
+    # иногда контуры колец выходят за край
+    if orbit_format == 1:
+        min_x = min_y = 0
+        for ring in ring_rings:
+            shift_xx = ring[1] - (ring[3] + ball_radius + BORDER)
+            shift_yy = ring[2] - (ring[3] + ball_radius + BORDER)
+            if shift_xx<0:
+                if min_x<(-shift_xx):
+                    min_x = -shift_xx
+            if shift_yy < 0:
+                if min_y < (-shift_yy):
+                    min_y = -shift_yy
+        if min_x>0 or min_y>0:
+            for ring in ring_rings:
+                ring[1],ring[2] = ring[1]+min_x, ring[2]+min_y
+            for line in ring_lines:
+                line[1],line[2] = line[1]+min_x, line[2]+min_y
+            for ball in ring_balls:
+                ball[2],ball[3] = ball[2]+min_x, ball[3]+min_y
 
     # изменим размеры окна
     WIN_WIDTH, WIN_HEIGHT = 0, 0
@@ -500,6 +533,7 @@ def read_file(fl, init=""):
             WIN_WIDTH = xx if xx > WIN_WIDTH else WIN_WIDTH
             yy = ring[2] + ring[3] + ball_radius + BORDER
             WIN_HEIGHT = yy if yy > WIN_HEIGHT else WIN_HEIGHT
+
     for ball in ring_balls:
         xx = ball[2] + ball_radius + BORDER
         WIN_WIDTH = xx if xx > WIN_WIDTH else WIN_WIDTH
@@ -546,8 +580,7 @@ def read_file(fl, init=""):
         for ball_sec in ring_balls:
             if ball == ball_sec: continue
             if ball_sec[6] == 0: continue
-            if compare_xy(ball[2], ball_sec[2], 2) and compare_xy(ball[3], ball_sec[3],
-                                                                  2):  # ball[2] == ball_sec[2] and ball[3] == ball_sec[3]
+            if compare_xy(ball[2], ball_sec[2], 2) and compare_xy(ball[3], ball_sec[3],2):
                 if len(ball[7]) == 0:
                     ball[7].append(ball_sec[0])  # номер перекрестного кольца, номер шарика в нем
                     ball[7].append(ball_sec[1])
@@ -1098,10 +1131,9 @@ def main():
                                 if ring_num != ball[0]:
                                     if ball[6] == 0:
                                         ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
+                                        if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
                                     elif ball[7][0] != ring_num:
                                         ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
-                                    if help > 1:
-                                        pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
                                 else:
                                     center_x, center_y = ring_rings[ring_num - 1][1], ring_rings[ring_num - 1][2]
                                     angle, grad = calc_angle(center_x, center_y, ball_x, ball_y, radius)
@@ -1114,10 +1146,10 @@ def main():
                                 if count == 0 or orbit_num!=ball[8]:
                                     if ball[6] == 0:
                                         ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
+                                        if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
                                     elif len(ball[7]) == 3 and ball[7][2] != orbit_num:
                                         ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
-                                    if help > 1:
-                                        pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
+                                        if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
                                 else:
                                     orbit = orbit_mas[orbit_num-1]
                                     ball_nn = ball[1]
