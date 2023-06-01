@@ -27,7 +27,7 @@ GRADIENT_COLOR = [[(255, 255, 255, 255), (120, 120, 120, 255)], [(70, 70, 70, 25
                   [(200, 50, 200, 255), (50, 0, 50, 255)], [(250, 170, 50, 255), (70, 50, 0, 255)],     # 6 фиолетовый 7 оранжевый
                   [(50, 200, 250, 255), (0, 50, 50, 255)], [(0, 160, 160, 255), (0, 50, 50, 255)],      # 8 голубой 9 бирюзовый
                   [(190, 140, 140, 255), (50, 30, 30, 255)], [(250, 120, 190, 255), (70, 30, 50, 255)], # 10 коричневый 11 розовый
-                  [(200, 130, 250, 255), (50, 30, 70, 255)], [(70, 250, 70, 255), (0, 70, 0, 255)],      # 12 сиреневый 13 лайм
+                  [(200, 130, 250, 255), (50, 30, 70, 255)], [(70, 250, 70, 255), (0, 70, 0, 255)],     # 12 сиреневый 13 лайм
                   [(200, 200, 200, 255), (50, 50, 50, 255)]]                                            # 14 серый
 SPRITE_MAS = []
 
@@ -380,7 +380,7 @@ def read_file(fl, init=""):
                 if len(param_mas) == 8:
                     param_mas[3], param_mas[4], param_mas[1] = calc_param(param_mas[3], param_calc), calc_param( param_mas[4], param_calc), int(param_mas[1])
                     ring_balls.append( [param_mas[1], int(param_mas[2]), param_mas[3], param_mas[4], int(param_mas[5]), param_mas[6], int(param_mas[7]), [], int(param_mas[0])])
-                elif len(param_mas) == 7 and (param_mas[3] == "next_ring" or param_mas[3] == "next_line"):
+                elif len(param_mas) == 7 and (param_mas[3] == "next_ring" or param_mas[3] == "next_ring_anti" or param_mas[3] == "next_line"):
                     kol = 1
                     pos_kol = param_mas[2].find("(")+1
                     if pos_kol>0:
@@ -406,7 +406,7 @@ def read_file(fl, init=""):
             pos_x, pos_y = ball[2], ball[3]
             num = 0
 
-        if ball[2] == "next_ring":
+        if ball[2] == "next_ring" or ball[2] == "next_ring_anti":
             num += 1
             angle_sector = ring[5]
 
@@ -429,10 +429,17 @@ def read_file(fl, init=""):
                         if ball[8] == ball_next[8]:
                             break
                 angle2, grad2 = calc_angle(ring[1], ring[2], ball_next[2], ball_next[3], ring[3])
-                if angle2 > angle:
-                    angle_sector, grad_sector = abs((angle - angle2 + 2 * pi) / kol), abs((grad - grad2 + 360) / kol)
+                if ball[2] == "next_ring":
+                    if angle2 > angle:
+                        angle_sector, grad_sector = abs((angle - angle2 + 2 * pi) / kol), abs((grad - grad2 + 360) / kol)
+                    else:
+                        angle_sector, grad_sector = abs((angle - angle2) / kol), abs((grad - grad2) / kol)
                 else:
-                    angle_sector, grad_sector = abs((angle - angle2) / kol), abs((grad - grad2) / kol)
+                    if angle2 > angle:
+                        angle_sector, grad_sector = abs((angle - angle2) / kol), abs((grad - grad2) / kol)
+                    else:
+                        angle_sector, grad_sector = abs((angle - angle2 - 2 * pi) / kol), abs((grad - grad2 - 360) / kol)
+                    angle_sector = -angle_sector
                 ring[5] = angle_sector
 
             radius = ring[3]
