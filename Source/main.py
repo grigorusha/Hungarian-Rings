@@ -409,6 +409,8 @@ def read_file(fl, init=""):
         if ball[2] == "next_ring" or ball[2] == "next_ring_anti":
             num += 1
             angle_sector = ring[5]
+            if orbit_format == 0 and num==1:
+                angle_sector = 0
 
             if angle_sector == 0:
                 kol, pos, fl_orbit = 1, nn, False
@@ -573,12 +575,8 @@ def read_file(fl, init=""):
             line[1], line[2] = line[2], line[1]
         for ball in ring_balls:
             ball[2], ball[3] = ball[3], ball[2]
-        WIN_WIDTH, WIN_HEIGHT = 0, 0
-        for ring in ring_rings:
-            xx = ring[1] + ring[3] + ball_radius + BORDER
-            WIN_WIDTH = xx if xx > WIN_WIDTH else WIN_WIDTH
-            yy = ring[2] + ring[3] + ball_radius + BORDER
-            WIN_HEIGHT = yy if yy > WIN_HEIGHT else WIN_HEIGHT
+
+        WIN_WIDTH, WIN_HEIGHT = WIN_HEIGHT, WIN_WIDTH
 
     ###########################################################################
     # установка перекрестных ссылок
@@ -969,12 +967,15 @@ def main():
                             if not file_ext:
                                 fl_break = fl_reset = True
                             else:
+                                old_width, old_height = WIN_WIDTH, WIN_HEIGHT
                                 fil = read_file("reset")
                                 window_front(win_caption)
 
                                 if typeof(fil) != "str":
                                     ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
                                     fl_break = file_ext = fl_reset = True
+                                    if old_width != WIN_WIDTH or old_height != WIN_HEIGHT:
+                                        fl_reset = False
                                 elif fil == "":
                                     mb.showerror(message="bad rings-file")
                                     window_front(win_caption)
