@@ -142,9 +142,13 @@ def calc_param(eval, param_calc):
     eval = float(eval)
     return eval
 
+def calc_length(x1, y1, x2, y2):
+    x, y = x2 - x1, y2 - y1
+    return sqrt(x*x + y*y)
+
 def calc_angle(center_x, center_y, x, y, rad=0):
     x, y = x - center_x, y - center_y
-    if rad == 0: rad = sqrt(x * x + y * y)
+    if rad == 0: rad = calc_length(0, 0, x, y)
 
     cos = round(x / rad, 8)
     if -1 <= cos <= 1:
@@ -156,6 +160,12 @@ def calc_angle(center_x, center_y, x, y, rad=0):
     else:
         angle = grad = 0
     return angle, round(grad, 2)
+
+def calc_len_polygon(polygon):
+    len_line = 0
+    for nn in range(len(polygon) - 1):
+        len_line += calc_length(polygon[nn][0], polygon[nn][1], polygon[nn + 1][0], polygon[nn + 1][1])
+    return len_line
 
 def centroid(polygon):
     x, y = 0, 0
@@ -176,9 +186,8 @@ def centroid(polygon):
     return x, y
 
 def check_polygon(center_x, center_y, x, y, polygon):
-    center_x, center_y = centroid(polygon)
-    pos_x, pos_y = x - center_x, y - center_y
-    length = sqrt(pos_x * pos_x + pos_y * pos_y)
+    # center_x, center_y = centroid(polygon)
+    length = calc_length(center_x, center_y, x, y)
 
     odd = False
     i,j = 0,len(polygon)-1
@@ -190,8 +199,7 @@ def check_polygon(center_x, center_y, x, y, polygon):
     return odd, length
 
 def check_circle(center_x, center_y, x, y, rad):
-    x, y = x - center_x, y - center_y
-    length = sqrt(x * x + y * y)
+    length = calc_length(center_x, center_y, x, y)
     return (length < rad, length*rad)
 
 def compare_xy(x, y, rr):
@@ -287,8 +295,15 @@ def read_file(fl, init=""):
                 return "-"
             filename = f_name
         lines = []
-        with open(filename, 'r') as f:
-            lines = f.readlines()
+        try:
+            with open(filename, encoding = 'utf-8', mode = 'r') as f:
+                lines = f.readlines()
+        except:
+            try:
+                with open(filename, mode='r') as f:
+                    lines = f.readlines()
+            except:
+                return ""
 
     # прочитаем файл
     for nom, stroka in enumerate(lines):
@@ -408,9 +423,7 @@ def read_file(fl, init=""):
 
         if ball[2] == "next_ring" or ball[2] == "next_ring_anti":
             num += 1
-            angle_sector = ring[5]
-            if orbit_format == 0 and num==1:
-                angle_sector = 0
+            angle_sector = 0 if num==1 else ring[5]
 
             if angle_sector == 0:
                 kol, pos, fl_orbit = 1, nn, False
@@ -421,17 +434,27 @@ def read_file(fl, init=""):
                         break
                     ball_next = ring_balls[pos]
                     if typeof(ball_next[2]) != "str":
-                        if ball[8] == ball_next[8]:
-                            fl_orbit = True
+                        if orbit_format == 0:
+                            if ball[8] == ball_next[8]:
+                                fl_orbit = True
+                        else:
+                            if ball[0] == ball_next[0]:
+                                fl_orbit = True
                         break
                     if ball[0] != ball_next[0]:
                         break
                 if not fl_orbit:
                     for ball_next in ring_balls:
-                        if ball[8] == ball_next[8]:
-                            break
+                        if orbit_format == 0:
+                            if ball[8] == ball_next[8]:
+                                break
+                        else:
+                            if ball[0] == ball_next[0]:
+                                break
                 angle2, grad2 = calc_angle(ring[1], ring[2], ball_next[2], ball_next[3], ring[3])
-                if ball[2] == "next_ring":
+                if angle2 == angle:
+                    angle_sector, grad_sector = 2*pi/kol, 360/kol # тут чистое кольцо без разрывов
+                elif ball[2] == "next_ring":
                     if angle2 > angle:
                         angle_sector, grad_sector = abs((angle - angle2 + 2 * pi) / kol), abs((grad - grad2 + 360) / kol)
                     else:
@@ -473,7 +496,7 @@ def read_file(fl, init=""):
                     for ball_next in ring_balls:
                         if ball[8] == ball_next[8]:
                             break
-                len_line = sqrt((pos_x - ball_next[2]) ** 2 + (pos_y - ball_next[3]) ** 2)
+                len_line = calc_length(pos_x,pos_y,ball_next[2],ball_next[3])
                 angle_line, grad = calc_angle(pos_x, pos_y, ball_next[2], ball_next[3], len_line)
                 len_line = len_line / kol
                 line[3], line[4] = angle_line, len_line
@@ -704,7 +727,13 @@ def read_file(fl, init=""):
 
             center_x, center_y = centroid(input_xy)
 
-            orbit_mas.append( [ nom,orbit_len, input_xy, spline_xy, spline_mas, shift_xy1, spline_sh1, shift_xy2, spline_sh2, (center_x,center_y) ] )
+            spline_len1 = calc_len_polygon(shift_xy1)
+            spline_len2 = calc_len_polygon(shift_xy2)
+
+            if spline_len1<spline_len2:
+                orbit_mas.append( [ nom,orbit_len, input_xy, spline_xy, spline_mas, shift_xy1, spline_sh1, shift_xy2, spline_sh2, (center_x,center_y) ] )
+            else:
+                orbit_mas.append( [ nom,orbit_len, input_xy, spline_xy, spline_mas, shift_xy2, spline_sh2, shift_xy1, spline_sh1, (center_x,center_y) ] )
 
     solved_ring = copy.deepcopy(ring_balls)
     ring_speed = ring_speed / 3
@@ -1028,6 +1057,19 @@ def main():
                 if mouse_xx + mouse_yy > 0 and help!=1 and not undo:
                     if mouse_xx < WIN_WIDTH and mouse_yy < WIN_HEIGHT:
                         ring_pos = []
+
+                        for ball in ring_balls:
+                            pos = check_circle(ball[2], ball[3], mouse_xx, mouse_yy, ball_radius)
+                            if pos[0]:
+                                if len(ring_pos)==0:
+                                    if orbit_format == 1:
+                                        ring_pos.append((ball[0], 0))
+                                    else:
+                                        ring_pos.append((ball[8], 0))
+                                else:
+                                    ring_pos = []
+                                    break
+
                         if orbit_format == 1:
                             for ring in ring_rings:
                                 pos = check_circle(ring[1], ring[2], mouse_xx, mouse_yy, ring[3] + ball_radius)
