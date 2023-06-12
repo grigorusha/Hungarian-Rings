@@ -609,16 +609,28 @@ def read_file(fl, init=""):
             if ball == ball_sec: continue
             if ball_sec[6] == 0: continue
             if compare_xy(ball[2], ball_sec[2], 2) and compare_xy(ball[3], ball_sec[3],2):
-                if len(ball[7]) == 0:
-                    ball[7].append(ball_sec[0])  # номер перекрестного кольца, номер шарика в нем
-                    ball[7].append(ball_sec[1])
-                    if orbit_format == 0:
-                        ball[7].append(ball_sec[8])  # номер орбиты
-                if len(ball_sec[7]) == 0:
-                    ball_sec[7].append(ball[0])
-                    ball_sec[7].append(ball[1])
-                    if orbit_format == 0:
-                        ball_sec[7].append(ball[8])
+                cross_ball = [ball_sec[0], ball_sec[1]] # номер перекрестного кольца, номер шарика в нем
+                if orbit_format == 0:
+                    cross_ball.append(ball_sec[8])  # номер орбиты
+                cross_fl = False
+                for cross in ball[7]:
+                    if cross==cross_ball:
+                        cross_fl = True
+                        break
+                if not cross_fl:
+                    ball[7].append(cross_ball)
+
+                cross_ball = [ball[0], ball[1]] # номер перекрестного кольца, номер шарика в нем
+                if orbit_format == 0:
+                    cross_ball.append(ball[8])  # номер орбиты
+                cross_fl = False
+                for cross in ball_sec[7]:
+                    if cross==cross_ball:
+                        cross_fl = True
+                        break
+                if not cross_fl:
+                    ball_sec[7].append(cross_ball)
+
                 ball_sec[4], ball_sec[5] = ball[4], ball[5]
 
     ###########################################################################
@@ -1182,8 +1194,10 @@ def main():
                                     if ball[6] == 0:
                                         ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
                                         if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
-                                    elif ball[7][0] != ring_num:
-                                        ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
+                                    else:
+                                        for cross in ball[7]:
+                                            if cross[0] != ring_num:
+                                                ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
                                 else:
                                     center_x, center_y = ring_rings[ring_num - 1][1], ring_rings[ring_num - 1][2]
                                     angle, grad = calc_angle(center_x, center_y, ball_x, ball_y, radius)
@@ -1197,9 +1211,14 @@ def main():
                                     if ball[6] == 0:
                                         ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
                                         if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
-                                    elif len(ball[7]) == 3 and ball[7][2] != orbit_num:
-                                        ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
-                                        if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
+                                    else:
+                                        fl_cross = False
+                                        for cross in ball[7]:
+                                            if cross[2] == orbit_num:
+                                                fl_cross = True
+                                        if not fl_cross:
+                                            ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
+                                            if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
                                 else:
                                     orbit = orbit_mas[orbit_num-1]
                                     ball_nn = ball[1]
@@ -1260,8 +1279,9 @@ def main():
                         if ball[6] == 1:
                             for ball_next in ring_balls:
                                 if ball_next[6] == 1:
-                                    if ball_next[0] == ball[7][0] and ball_next[1] == ball[7][1]:
-                                        ball_next[4], ball_next[5] = ball[4], ball[5]
+                                    for cross in ball[7]:
+                                        if ball_next[0] == cross[0] and ball_next[1] == cross[1]:
+                                            ball_next[4], ball_next[5] = ball[4], ball[5]
 
                     if not undo:
                         moves += 1
