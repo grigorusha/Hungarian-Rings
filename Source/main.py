@@ -505,6 +505,17 @@ def read_file(fl, init=""):
             xx, yy = angle_cos * len_line * num + pos_x, angle_sin * len_line * num + pos_y
             ball[2], ball[3] = xx, yy
 
+    # исправим возможные косяки нумерации
+    ring = 0
+    ring_point = 0 if orbit_format==1 else 8
+    for nn,ball in enumerate(ring_balls):
+        if ball[ring_point] != ring:
+            ring = ball[ring_point]
+            pos = 1
+        if ball[1] != pos:
+            ball[1] = pos
+        pos += 1
+
     # выровняем относительно осей. чтобы не было сильных сдвигов
     for nn,ball in enumerate(ring_balls):
         if nn==0:
@@ -1153,7 +1164,8 @@ def main():
             if ring_num > 0:
 
                 # анимация
-                if (scramble_move == 0 or scramble_move_first > 0):
+                animation_off = False
+                if (scramble_move == 0 or scramble_move_first > 0)and not animation_off:
                     if scramble_move_all != 0:
                         scramble_move_first -= 1
                         if (scramble_move_first < (3 * scramble_move_all // 10)):
@@ -1195,9 +1207,12 @@ def main():
                                         ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
                                         if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
                                     else:
+                                        fl_cross = False
                                         for cross in ball[7]:
-                                            if cross[0] != ring_num:
-                                                ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
+                                            if cross[0] == ring_num:
+                                                fl_cross = True
+                                        if not fl_cross:
+                                            ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
                                 else:
                                     center_x, center_y = ring_rings[ring_num - 1][1], ring_rings[ring_num - 1][2]
                                     angle, grad = calc_angle(center_x, center_y, ball_x, ball_y, radius)
