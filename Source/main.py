@@ -118,17 +118,35 @@ def ball_draw(game_scr, ball, xx, yy, ball_radius, ball_offset, font_marker, hel
     game_scr.blit(gradient_circle(ball_radius, color_index, True, 1, offset=ball_offset),(xx - ball_radius, yy - ball_radius))
     print_marker(game_scr, font_marker, ball[5], xx, yy, color_index)
 
-def contur_draw(game_scr, orbit_format, ring_rings, orbit_mas, ball_radius, ring_move, orbit_num):
+def linked_check(linked, ring_num, orbit_num, vek, orbit_format):
+    num = ring_num if orbit_format == 1 else orbit_num
+    pos_link = -1
+    if len(linked) > 0:
+        for n_lin, lin in enumerate(linked):
+            if (num in lin):
+                pos_link = n_lin
+            if (-num in lin):
+                pos_link = n_lin
+                vek *= -1
+    if pos_link >= 0:
+        moved_ring = linked[pos_link]
+    else:
+        moved_ring = [num]
+
+    return moved_ring, vek
+
+def contur_draw(game_scr, orbit_format, ring_rings, orbit_mas, ball_radius, ring_select, orbit_num, linked):
+    moved_ring, _ = linked_check(linked, ring_select, orbit_num, 0, orbit_format)
     if orbit_format==1:
         for ring in ring_rings:
-            if ring[0] == ring_move:
+            if (ring[0] in moved_ring) or (-ring[0] in moved_ring):
                 draw.circle(game_scr, WHITE_COLOR, (ring[1], ring[2]), ring[3] + ball_radius + 3, 3)
             else:
                 draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] + ball_radius + 3, 2)
             draw.circle(game_scr, GRAY_COLOR2, (ring[1], ring[2]), ring[3] - ball_radius, 1)
     else:
         for orbit in orbit_mas:
-            if orbit[0] == orbit_num:
+            if (orbit[0] in moved_ring) or (-orbit[0] in moved_ring):
                 draw.polygon(game_scr, WHITE_COLOR, orbit[8], 3)
             else:
                 draw.polygon(game_scr, GRAY_COLOR2, orbit[8], 2)
@@ -280,7 +298,7 @@ def read_file(fl, init=""):
 
     flip_y = flip_x = flip_rotate = False
     ring_name, ring_author, ring_scale, ring_speed, orbit_format = "", "", 1, 2, 1
-    param_calc, ring_ballsformat, ring_rings, ring_lines, ring_balls, ring_link, solved_ring, orbit_mas = [], [], [], [], [], [], [], []
+    param_calc, ring_ballsformat, ring_rings, ring_lines, ring_balls, ring_link, solved_ring, orbit_mas, linked, jumper = [], [], [], [], [], [], [], [], [], []
 
     if fl == "init":
         lines = init.split("\n")
@@ -366,6 +384,17 @@ def read_file(fl, init=""):
                 if len(param_mas) != 7: return ""
                 param_mas[2], param_mas[3], param_mas[4] = calc_param(param_mas[2], param_calc), calc_param(param_mas[3], param_calc), calc_param(param_mas[4], param_calc)
                 ring_rings.append([int(param_mas[1]), param_mas[2], param_mas[3], param_mas[4], int(param_mas[5]), 0, int(param_mas[0]), int(param_mas[6])])
+
+        elif command == "Linked":
+            link_par = []
+            for par in param_mas:
+                link_par.append(int(par))
+            linked.append(link_par)
+
+        elif command == "Jumper":
+            jumper = []
+            for par in param_mas:
+                jumper.append(int(par))
 
         elif command == "Line":
             if orbit_format != 1:
@@ -761,7 +790,7 @@ def read_file(fl, init=""):
     solved_ring = copy.deepcopy(ring_balls)
     ring_speed = ring_speed / 3
 
-    return ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul
+    return ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper
 
 def main():
     global BTN_CLICK, BTN_CLICK_STR, WIN_WIDTH, WIN_HEIGHT, BORDER, filename, SPRITE_MAS
@@ -779,7 +808,7 @@ def main():
 
     ring_name = ring_author = ring_link = ""
     ring_scale, ring_speed, orbit_format = 1, 3, 1
-    ring_ballsformat, ring_rings, ring_lines, ring_balls, orbit_mas = [], [], [], [], []
+    ring_ballsformat, ring_rings, ring_lines, ring_balls, orbit_mas, linked, jumper = [], [], [], [], [], [], []
     vek_mul = -1
     solved_ring = []
     fl_reset = False
@@ -803,7 +832,7 @@ def main():
     while True:
         if not file_ext:
             fil = init_ring()
-            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
+            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper = fil
 
         help_mul = 3
         for ball in ring_balls:
@@ -831,7 +860,7 @@ def main():
 
         SPRITE_MAS = ["" for i in range(len(GRADIENT_COLOR))]
 
-        scramble_move = scramble_move_all = scramble_move_first = ring_num_pred = orbit_num_pred = kol_step = 0
+        scramble_move = scramble_move_all = scramble_move_first = ring_num_pred = orbit_num_pred = 0
         moves_stack = []
         moves = 0
         solved = True
@@ -886,9 +915,8 @@ def main():
         # Основной цикл программы
         while True:
             undo = False
-            mouse_x, mouse_y, mouse_left, mouse_right, ring_move = 0, 0, False, False, 0
-            if kol_step == 0:
-                ring_num = vek = orbit_num = 0
+            mouse_x, mouse_y, mouse_left, mouse_right, ring_select = 0, 0, False, False, 0
+            ring_num = vek = orbit_num = 0
 
             if scramble_move == 0:
                 timer.tick(10)
@@ -976,6 +1004,7 @@ def main():
                         mouse_x2, mouse_y2 = ev.pos[0], ev.pos[1]
                         ball_pos = []
                         for ball in ring_balls:
+                            if ball[0] == 0: continue
                             pos = check_circle(ball[2], ball[3], mouse_x2, mouse_y2, ball_radius)
                             if pos[0]:
                                 if len(ball_pos)==0:
@@ -1024,7 +1053,7 @@ def main():
                                 window_front(win_caption)
 
                                 if typeof(fil) != "str":
-                                    ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
+                                    ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper = fil
                                     fl_break = file_ext = fl_reset = True
                                     if old_width != WIN_WIDTH or old_height != WIN_HEIGHT:
                                         fl_reset = False
@@ -1037,7 +1066,7 @@ def main():
                             window_front(win_caption)
 
                             if typeof(fil) != "str":
-                                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, WIN_WIDTH, WIN_HEIGHT, vek_mul = fil
+                                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper = fil
                                 file_ext = fl_break = True
                                 fl_reset = False
                             elif fil == "":
@@ -1061,7 +1090,7 @@ def main():
                             scramble_move = ball_kol * pos * 5
                             mul = 2 if ball_kol < 100 else 1
                             scramble_move_all = scramble_move_first = ball_kol * mul
-                            ring_num_pred = orbit_num_pred = kol_step = 0
+                            ring_num_pred = orbit_num_pred = 0
 
                         if BTN_CLICK_STR == "undo" and help!=1:
                             fl_break = False
@@ -1082,6 +1111,7 @@ def main():
                         ring_pos = []
 
                         for ball in ring_balls:
+                            if ball[0]==0: continue
                             pos = check_circle(ball[2], ball[3], mouse_xx, mouse_yy, ball_radius)
                             if pos[0]:
                                 if len(ring_pos)==0:
@@ -1116,199 +1146,239 @@ def main():
                                     if ring_info[1] < rr:
                                         rr = ring_info[1]
                                         if orbit_format == 1:
-                                            ring_move = ring_info[0]
+                                            ring_select = ring_info[0]
                                         else:
                                             orbit_num = ring_info[0]
                                             for ring in ring_rings:
                                                 if ring[7]==1 and ring[6]==orbit_num:
-                                                    ring_move = ring[0]
+                                                    ring_select = ring[0]
                                                     break
                             else:
                                 if orbit_format == 1:
-                                    ring_move = ball_pos[1][0]
+                                    ring_select = ball_pos[1][0]
                                 else:
                                     orbit_num = ball_pos[1][3]
                                     for ring in ring_rings:
                                         if ring[7] == 1 and ring[6] == orbit_num:
-                                            ring_move = ring[0]
+                                            ring_select = ring[0]
                                             break
 
                             if mouse_x + mouse_y > 0:  # есть клик
                                 vek = -1 if mouse_left else 1 if mouse_right else vek
                                 vek = vek * vek_mul
-                                ring_num = ring_move
+                                ring_num = ring_select
+
+                                if len(jumper)>0:
+                                    if orbit_format == 1:
+                                        kol_step = jumper[ring_num-1]
+                                    else:
+                                        kol_step = jumper[orbit_num-1]
+                                else:
+                                    kol_step = 1
 
             else:
                 ################################################################################
                 # обработка рандома для Скрамбла
-                if kol_step > 0:
-                    kol_step -= 1
-                else:
-                    vek = random.choice([-1, 1])
-                    while True:
-                        ring_num = random.randint(1, len(ring_rings))
-                        kol_step = random.randint(1, ring_rings[ring_num - 1][4] // 2)
-                        if orbit_format == 0:
-                            if ring_rings[ring_num - 1][7]==0: continue
-                            orbit_num = ring_rings[ring_num - 1][6]
-                            if orbit_num_pred != orbit_num:
-                                orbit_num_pred = orbit_num
-                                break
-                        else:
-                            if ring_num_pred != ring_num:
-                                ring_num_pred = ring_num
-                                break
+                vek = random.choice([-1, 1])
+                while True:
+                    ring_num = random.randint(1, len(ring_rings))
+                    kol_step = random.randint(1, ring_rings[ring_num - 1][4] // 2)
+
+                    if orbit_format == 0:
+                        if ring_rings[ring_num - 1][7]==0: continue
+                        orbit_num = ring_rings[ring_num - 1][6]
+                        if len(jumper) > 0:
+                            kol_step *= jumper[orbit_num - 1]
+                        moved_ring, _ = linked_check(linked, ring_num, orbit_num, vek, orbit_format)
+                        if not( (orbit_num_pred in moved_ring) or (-orbit_num_pred in moved_ring) ):
+                            orbit_num_pred = orbit_num
+                            break
+                    else:
+                        moved_ring, _ = linked_check(linked, ring_num, orbit_num, vek, orbit_format)
+                        if not( (ring_num_pred in moved_ring) or (-ring_num_pred in moved_ring) ):
+                            ring_num_pred = ring_num
+                            break
 
             ################################################################################
             # логика игры - выполнение перемещений
             if ring_num > 0:
+                while kol_step>0:
+                    kol_step -= 1
 
-                # анимация
-                animation_off = False
-                if (scramble_move == 0 or scramble_move_first > 0)and not animation_off:
-                    if scramble_move_all != 0:
-                        scramble_move_first -= 1
-                        if (scramble_move_first < (3 * scramble_move_all // 10)):
-                            speed_mul = 9
-                        elif (scramble_move_first < (5 * scramble_move_all // 10)):
-                            speed_mul = 7
-                        elif (scramble_move_first < (8 * scramble_move_all // 10)):
-                            speed_mul = 5
-                        else:
-                            speed_mul = 3
-                    else:
-                        speed_mul = 1
-
-                    if orbit_format == 1:
-                        angle_sector = ring_rings[ring_num - 1][5]
-                        radius = ring_rings[ring_num - 1][3]
-                        step = ball_radius * 2
-                        step = step / (ring_speed * speed_mul)
-                    else:
-                        step = ball_radius * 2 / ring_speed
-                        step = step / speed_mul
-
-                    for count in range(int(step)):
-                        timer.tick(300)
-                        events = pygame.event.get()
-                        game_scr.fill(Color(GRAY_COLOR))
-
-                        contur_draw(game_scr, orbit_format, ring_rings, orbit_mas, ball_radius, ring_move, orbit_num)
-
-                        for nn, ball in enumerate(ring_balls):
-                            if help > 1:
-                                pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0], (ball[2], ball[3]),ball_radius, 2)
-
-                        for nn, ball in enumerate(ring_balls):
-                            ball_x, ball_y = ball[2], ball[3]
-                            if orbit_format == 1:
-                                if ring_num != ball[0]:
-                                    if ball[6] == 0:
-                                        ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
-                                        if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
-                                    else:
-                                        fl_cross = False
-                                        for cross in ball[7]:
-                                            if cross[0] == ring_num:
-                                                fl_cross = True
-                                        if not fl_cross:
-                                            ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
-                                else:
-                                    center_x, center_y = ring_rings[ring_num - 1][1], ring_rings[ring_num - 1][2]
-                                    angle, grad = calc_angle(center_x, center_y, ball_x, ball_y, radius)
-                                    ang = round(angle + vek * vek_mul * count * angle_sector / step, 10)
-                                    angle_cos, angle_sin = cos(ang), sin(ang)
-                                    xx, yy = angle_cos * radius + center_x, angle_sin * radius + center_y
-
-                                    ball_draw(game_scr, ball, xx, yy, ball_radius, ball_offset, font_marker)
+                    #############################################################################
+                    # анимация
+                    animation_off = False
+                    if (scramble_move == 0 or scramble_move_first > 0)and not animation_off:
+                        if scramble_move_all != 0:
+                            scramble_move_first -= 1
+                            if (scramble_move_first < (3 * scramble_move_all // 10)):
+                                speed_mul = 9
+                            elif (scramble_move_first < (5 * scramble_move_all // 10)):
+                                speed_mul = 7
+                            elif (scramble_move_first < (8 * scramble_move_all // 10)):
+                                speed_mul = 5
                             else:
-                                if count == 0 or orbit_num!=ball[8]:
-                                    if ball[6] == 0:
-                                        ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
-                                        if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
-                                    else:
-                                        fl_cross = False
-                                        for cross in ball[7]:
-                                            if cross[2] == orbit_num:
-                                                fl_cross = True
-                                        if not fl_cross:
+                                speed_mul = 3
+                        else:
+                            speed_mul = 1
+
+                        step = 2*ball_radius / (ring_speed*speed_mul)
+                        for count in range(int(step)):
+                            timer.tick(300)
+                            events = pygame.event.get()
+                            game_scr.fill(Color(GRAY_COLOR))
+
+                            contur_draw(game_scr, orbit_format, ring_rings, orbit_mas, ball_radius, ring_select, orbit_num, linked)
+
+                            for nn, ball in enumerate(ring_balls):
+                                if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0], (ball[2], ball[3]),ball_radius, 2)
+
+                            if len(linked) > 0:
+                                ring_num_save, orbit_num_save, vek_save = ring_num, orbit_num, vek
+
+                            moved_ring, vek = linked_check(linked, ring_num, orbit_num, vek, orbit_format)
+
+                            for nn, ball in enumerate(ring_balls):
+                                ball_x, ball_y = ball[2], ball[3]
+                                if orbit_format == 1:
+                                    if count == 0 or not ( (ball[0] in moved_ring) or (-ball[0] in moved_ring) ):
+                                        if ball[6] == 0:
                                             ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
                                             if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
-                                else:
-                                    orbit = orbit_mas[orbit_num-1]
-                                    ball_nn = ball[1]
-                                    if ball_nn==orbit[1]: ball_nn = 0
-
-                                    if vek < 0:
-                                        spline = orbit[4][ball_nn-2]
+                                        else:
+                                            fl_cross = False
+                                            for cross in ball[7]:
+                                                if ( (cross[0] in moved_ring) or (-cross[0] in moved_ring) ):
+                                                    fl_cross = True
+                                            if not fl_cross:
+                                                ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
                                     else:
-                                        spline = orbit[4][ball_nn-1]
-                                    line_len = len(spline)
+                                        ring_num = ball[0]
+                                        vek_ = -vek if (-ring_num in moved_ring) else vek
 
-                                    k = line_len/step
-                                    pos = int(count*k)
-                                    if pos>=line_len:
-                                        pos = line_len-1
-                                    if vek < 0:
-                                         pos = line_len-pos-1
+                                        center_x, center_y = ring_rings[ring_num - 1][1], ring_rings[ring_num - 1][2]
+                                        radius, angle_sector = ring_rings[ring_num - 1][3], ring_rings[ring_num - 1][5]
 
-                                    xx,yy = spline[pos][0], spline[pos][1]
+                                        angle, grad = calc_angle(center_x, center_y, ball_x, ball_y, radius)
+                                        ang = round(angle + vek_ * vek_mul * count * angle_sector / step, 10)
+                                        angle_cos, angle_sin = cos(ang), sin(ang)
+                                        xx, yy = angle_cos * radius + center_x, angle_sin * radius + center_y
 
-                                    ball_draw(game_scr, ball, xx, yy, ball_radius, ball_offset, font_marker)
+                                        ball_draw(game_scr, ball, xx, yy, ball_radius, ball_offset, font_marker)
+                                else:
+                                    if count == 0 or not ( (ball[8] in moved_ring) or (-ball[8] in moved_ring) ):
+                                        if ball[6] == 0:
+                                            ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
+                                            if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
+                                        else:
+                                            fl_cross = False
+                                            for cross in ball[7]:
+                                                if ( (cross[2] in moved_ring) or (-cross[2] in moved_ring) ):
+                                                    fl_cross = True
+                                            if not fl_cross:
+                                                ball_draw(game_scr, ball, ball_x,ball_y, ball_radius, ball_offset, font_marker)
+                                                if help > 1: pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0],(ball[2], ball[3]), ball_radius, 2)
+                                    else:
+                                        orbit_num = ball[8]
+                                        vek_ = -vek if (-orbit_num in moved_ring) else vek
 
-                        screen.blit(game_scr, (0, 0))
-                        pygame_widgets.update(events)
-                        pygame.display.update()
+                                        orbit = orbit_mas[orbit_num-1]
+                                        ball_nn = ball[1]
+                                        if ball_nn==orbit[1]: ball_nn = 0
 
-                #############################################################################
-                # перемещение
-                for ring in ring_rings:
-                    if ring[0] == ring_num:
-                        ball_kol = ring[4]
-                        break
-                for nn, ball in enumerate(ring_balls):
-                    if orbit_format == 1:
-                        if ball[0] != ring_num: continue
-                    else:
-                        if ball[8] != orbit_num: continue
+                                        if vek_ < 0:
+                                            spline = orbit[4][ball_nn-2]
+                                        else:
+                                            spline = orbit[4][ball_nn-1]
+                                        line_len = len(spline)
 
-                    if vek == -1:
-                        ball_pred = copy.deepcopy(ball)
-                        for kol in range(1, ball_kol):
-                            ball = ring_balls[nn + kol - 1]
-                            ball_next = ring_balls[nn + kol]
-                            ball[4], ball[5] = ball_next[4], ball_next[5]
-                        ball_next = ring_balls[nn + ball_kol - 1]
-                        ball_next[4], ball_next[5] = ball_pred[4], ball_pred[5]
-                    if vek == 1:
-                        ball = ring_balls[nn + ball_kol - 1]
-                        ball_pred = copy.deepcopy(ball)
-                        for kol in range(ball_kol - 1, 0, -1):
-                            ball = ring_balls[nn + kol]
-                            ball_next = ring_balls[nn + kol - 1]
-                            ball[4], ball[5] = ball_next[4], ball_next[5]
-                        ball_next = ring_balls[nn]
-                        ball_next[4], ball_next[5] = ball_pred[4], ball_pred[5]
-                    for kol in range(0, ball_kol):
-                        ball = ring_balls[nn + kol]
-                        if ball[6] == 1:
-                            for ball_next in ring_balls:
-                                if ball_next[6] == 1:
-                                    for cross in ball[7]:
-                                        if ball_next[0] == cross[0] and ball_next[1] == cross[1]:
-                                            ball_next[4], ball_next[5] = ball[4], ball[5]
+                                        k = line_len/step
+                                        pos = int(count*k)
+                                        if pos>=line_len:
+                                            pos = line_len-1
+                                        if vek_ < 0:
+                                             pos = line_len-pos-1
 
-                    if not undo:
-                        moves += 1
-                        moves_stack.append([ring_num, vek, orbit_num])
-                    break
+                                        xx,yy = spline[pos][0], spline[pos][1]
+
+                                        ball_draw(game_scr, ball, xx, yy, ball_radius, ball_offset, font_marker)
+
+                            if len(linked) > 0:
+                                ring_num, orbit_num, vek = ring_num_save, orbit_num_save, vek_save
+
+                            screen.blit(game_scr, (0, 0))
+                            pygame_widgets.update(events)
+                            pygame.display.update()
+
+                    #############################################################################
+                    # перемещение
+                    if len(linked)>0:
+                        ring_num_save, orbit_num_save, vek_save = ring_num, orbit_num, vek
+
+                    moved_ring, vek = linked_check(linked, ring_num, orbit_num, vek, orbit_format)
+
+                    for mov_ring in moved_ring:
+                        if orbit_format == 1:
+                            ring_num = abs(mov_ring)
+                        else:
+                            orbit_num = abs(mov_ring)
+                            for ring in ring_rings:
+                                if ring[7] == 1 and ring[6] == orbit_num:
+                                    ring_num = ring[0]
+                                    break
+                        if mov_ring<0:
+                            vek = -1*vek
+
+                        for ring in ring_rings:
+                            if ring[0] == ring_num:
+                                ball_kol = ring[4]
+                                break
+
+                        for nn, ball in enumerate(ring_balls):
+                            if orbit_format == 1:
+                                if ball[0] != ring_num: continue
+                            else:
+                                if ball[8] != orbit_num: continue
+
+                            if vek == -1:
+                                ball_pred = copy.deepcopy(ball)
+                                for kol in range(1, ball_kol):
+                                    ball = ring_balls[nn + kol - 1]
+                                    ball_next = ring_balls[nn + kol]
+                                    ball[4], ball[5] = ball_next[4], ball_next[5]
+                                ball_next = ring_balls[nn + ball_kol - 1]
+                                ball_next[4], ball_next[5] = ball_pred[4], ball_pred[5]
+                            if vek == 1:
+                                ball = ring_balls[nn + ball_kol - 1]
+                                ball_pred = copy.deepcopy(ball)
+                                for kol in range(ball_kol - 1, 0, -1):
+                                    ball = ring_balls[nn + kol]
+                                    ball_next = ring_balls[nn + kol - 1]
+                                    ball[4], ball[5] = ball_next[4], ball_next[5]
+                                ball_next = ring_balls[nn]
+                                ball_next[4], ball_next[5] = ball_pred[4], ball_pred[5]
+                            for kol in range(0, ball_kol):
+                                ball = ring_balls[nn + kol]
+                                if ball[6] == 1:
+                                    for ball_next in ring_balls:
+                                        if ball_next[6] == 1:
+                                            for cross in ball[7]:
+                                                if ball_next[0] == cross[0] and ball_next[1] == cross[1]:
+                                                    ball_next[4], ball_next[5] = ball[4], ball[5]
+                            if not undo and mov_ring == moved_ring[0]:
+                                moves += 1
+                                moves_stack.append([ring_num, vek, orbit_num])
+                            break
+
+                    if len(linked)>0:
+                        ring_num, orbit_num, vek = ring_num_save, orbit_num_save, vek_save
 
             # скрамбл
             if scramble_move != 0:
                 scramble_move -= 1
                 if scramble_move == 0:
                     moves_stack = []
-                    moves = ring_num = vek = orbit_num = scramble_move_all = kol_step = 0
+                    moves = ring_num = vek = orbit_num = scramble_move_all = 0
                 continue  # отрисовка не нужна
 
             # проверка на решенное состояние
@@ -1342,7 +1412,7 @@ def main():
             game_scr.fill(Color(GRAY_COLOR))
 
             # отрисовка контуров
-            contur_draw(game_scr, orbit_format, ring_rings, orbit_mas, ball_radius, ring_move, orbit_num)
+            contur_draw(game_scr, orbit_format, ring_rings, orbit_mas, ball_radius, ring_select, orbit_num, linked)
 
             # отрисовка шариков
             for nn,ball in enumerate(ring_balls):
