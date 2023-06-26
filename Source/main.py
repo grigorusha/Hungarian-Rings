@@ -221,7 +221,8 @@ def check_circle(center_x, center_y, x, y, rad):
     return (length < rad, length*rad)
 
 def compare_xy(x, y, rr):
-    return round(x, rr) == round(y, rr)
+    # return round(x, rr) == round(y, rr)
+    return round(abs(x-y), rr) <= 0.1
 
 def get_ring_num(orbit_format, ring_rings, ring_lines, ring_num):
     if orbit_format == 1:
@@ -648,7 +649,7 @@ def read_file(fl, init=""):
         for ball_sec in ring_balls:
             if ball == ball_sec: continue
             if ball_sec[6] == 0: continue
-            if compare_xy(ball[2], ball_sec[2], 2) and compare_xy(ball[3], ball_sec[3],2):
+            if compare_xy(ball[2], ball_sec[2], 1) and compare_xy(ball[3], ball_sec[3],1):
                 cross_ball = [ball_sec[0], ball_sec[1]] # номер перекрестного кольца, номер шарика в нем
                 if orbit_format == 0:
                     cross_ball.append(ball_sec[8])  # номер орбиты
