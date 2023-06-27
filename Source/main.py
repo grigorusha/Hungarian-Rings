@@ -1096,10 +1096,23 @@ def main():
                         if BTN_CLICK_STR == "undo" and help!=1:
                             fl_break = False
                             if len(moves_stack) > 0:
-                                ring_num, vek, orbit_num = moves_stack.pop()
-                                vek = -vek
-                                moves -= 1
                                 undo = True
+
+                                ring_num, vek, orbit_num = moves_stack.pop()
+                                moves -= 1
+
+                                kol_step = 1
+                                if len(jumper)>0:
+                                    if orbit_format == 1:
+                                        kol_step = jumper[ring_num-1]
+                                    else:
+                                        kol_step = jumper[orbit_num-1]
+
+                                if kol_step>1:
+                                    for _ in range(kol_step-1):
+                                        ring_num, vek, orbit_num = moves_stack.pop()
+                                        moves -= 1
+                                vek = -vek
 
                         BTN_CLICK = False
                         BTN_CLICK_STR = ""
