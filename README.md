@@ -29,6 +29,8 @@ I have created files for all the ring puzzles, you can download them from the "R
 - **F2** - reset the puzzle to its initial state.
 - **F3** - opening a file with a new ring-puzzle
 - **F4** - automatic scramble puzzle
+- **F11** - previous puzzle
+- **F12** - next puzzle
 ### Programm button
 - **Reset** - reset the puzzle to its initial state.
 - **Scramble** - automatic scramble puzzle
