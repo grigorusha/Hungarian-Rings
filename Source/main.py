@@ -1305,6 +1305,12 @@ def main():
                                     if ring[6] == orbit[0]:
                                         pos = check_circle(ring[1], ring[2], mouse_xx, mouse_yy, ring[3] + ball_radius)
                                         ring_pos.append((orbit[0], pos[1]))
+                        if len(ring_pos)==0:
+                            for ring in ring_rings:
+                                if ring[7]==1:
+                                    pos = check_circle(ring[1], ring[2], mouse_xx, mouse_yy, ring[3] + ball_radius)
+                                    if pos[0]:
+                                        ring_pos.append((ring[6], pos[1]))
 
                     if len(ring_pos) > 0:  # есть внутри круга
                         if not drag_ball:
