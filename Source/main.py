@@ -3,7 +3,7 @@ from pygame import *
 import pygame_widgets
 from pygame_widgets.button import Button
 
-from math import sqrt, cos, sin, pi, acos
+from math import pi, sqrt, cos, sin, tan, acos, asin, atan, exp, pow
 
 import webbrowser
 from tkinter import Tk
@@ -356,14 +356,10 @@ def compare_xy(x, y, rr):
     return round(abs(x - y), rr) <= 10**(-rr)
 
 def get_ring_num(orbit_format, ring_rings, ring_lines, ring_num):
-    if orbit_format == 1:
-        for ring in ring_rings:
-            if ring[0] == ring_num:
-                return ring, []
-    else:
-        for ring in ring_rings:
-            if ring[0] == ring_num:
-                return ring, []
+    for ring in ring_rings:
+        if ring[0] == ring_num:
+            return ring, []
+    if orbit_format == 0:
         for line in ring_lines:
             if line[0] == ring_num:
                 return [], line
@@ -448,6 +444,106 @@ def init_ring():
     fil = read_file("init", init)
     return fil
 
+def check_format_error(orbit_format, ring_rings, ring_lines, ring_balls, ring_ballsformat):
+    # 1. исправим возможные косяки нумерации шариков
+    ring_n = 0
+    ring_point = 0 if orbit_format==1 else 8
+    for nn,ball in enumerate(ring_balls):
+        if ball[ring_point] != ring_n:
+            ring_n = ball[ring_point]
+            ball[1] = pos = 1
+        if ball[1] != pos:
+            ball[1] = pos
+        pos += 1
+
+    # 2. проверим массив колец и линий - уникальность нумерации
+    mas_orbit_ring, mas_orbit, mas_ring = [],[],[]
+    if orbit_format==1:
+        for ring in ring_rings:
+            mas_orbit_ring.append(str(ring[0]))
+            mas_ring.append(ring[0])
+    else:
+        for ring in ring_rings:
+            numb_str = str(ring[6])+","+str(ring[0])
+            mas_orbit_ring.append( numb_str )
+            mas_orbit.append(ring[6])
+            mas_ring.append(ring[0])
+        for line in ring_lines:
+            numb_str = str(line[5])+","+str(line[0])
+            mas_orbit_ring.append( numb_str )
+            mas_orbit.append(line[5])
+            mas_ring.append(line[0])
+    if len(mas_orbit_ring) != len(set(mas_orbit_ring)):
+        return "Incorrect numbering of Rings, Lines or Orbits. There are non-unique values."
+    if len(mas_ring) != len(set(mas_ring)):
+        return "Incorrect numbering of Rings, Lines or Orbits. There are non-unique values."
+    mas_orbit = list(set(mas_orbit))
+    mas_ring = list(set(mas_ring))
+
+    # 3. проверим массив шариков - уникальность нумерации и на существование ссылок, корректность цвета и маркера
+    mas_ball = []
+    for nn,ball in enumerate(ring_balls):
+        if orbit_format==1:
+            numb_str = str(ball[0])+","+str(ball[1])
+            if ball[0]!=0:
+                if ball[0] not in mas_ring:
+                    ball_str = str(ball[0]) + "," + str(ball[1]) if orbit_format == 1 else str(ball[8]) + "," + str(ball[0]) + "," + str(ball[1])
+                    return "Incorrect Ring link. In ball № "+str(nn+1) + " (" + ball_str + ")"
+        else:
+            numb_str = str(ball[8])+","+str(ball[0])+","+str(ball[1])
+            if ball[0]!=0:
+                if ball[0] not in mas_ring or ball[8] not in mas_orbit:
+                    ball_str = str(ball[0]) + "," + str(ball[1]) if orbit_format == 1 else str(ball[8]) + "," + str(ball[0]) + "," + str(ball[1])
+                    return "Incorrect Rings, Lines or Orbits link. In ball № " + str(nn + 1) + " (" + ball_str + ")"
+        mas_ball.append(numb_str)
+
+        if ball[4]<0 or ball[4]>len(GRADIENT_COLOR)-1:
+            ball_str = str(ball[0]) + "," + str(ball[1]) if orbit_format == 1 else str(ball[8]) + "," + str(ball[0]) + "," + str(ball[1])
+            return "Incorrect Color index. In ball № " + str(nn + 1) + " (" + ball_str + ")"
+        if ball[5]!="-":
+            if ring_ballsformat[1]<2:
+                return "Very small font size for Markers in 'BallsFormat' parameters."
+            if len(ball[5])>3:
+                ball_str = str(ball[0]) + "," + str(ball[1]) if orbit_format == 1 else str(ball[8]) + "," + str(ball[0]) + "," + str(ball[1])
+                return "Very long Marker string. In ball № " + str(nn + 1) + " (" + ball_str + ")"
+    if len(mas_ball) != len(set(mas_ball)):
+        return "Incorrect numbering of Balls. There are non-unique values."
+
+    # 4. проверим количество шариков в орбитах и кольцах
+    mas_orbit = []
+    if orbit_format == 1:
+        for ring in ring_rings:
+            mas_orbit.append( [ring[0],ring[4], 0] )
+    else:
+        for ring in ring_rings:
+            orb_param = [ring[6],ring[4], 0]
+            if orb_param not in mas_orbit:
+                mas_orbit.append( orb_param )
+    for nn, ball in enumerate(ring_balls):
+        for orb in mas_orbit:
+            if orbit_format == 1:
+                if orb[0]==ball[0]: orb[2] += 1
+            else:
+                if orb[0]==ball[8]: orb[2] += 1
+    for orb in mas_orbit:
+        if orb[2]==0:
+            return "No balls found in Orbit. In orbit № " + str(orb[0])
+        if orb[1] != orb[2]:
+            return "Incorrect number of balls to the Orbit. In orbit № " + str(orb[0])
+
+    # все ОК
+    return ""
+
+def check_format_error2(orbit_format, ring_balls):
+    # 5. проверим некорректные перекрестные ссылки
+    for nn, ball in enumerate(ring_balls):
+        if ball[6]==1 and len(ball[7])==0:
+            ball_str = str(ball[0])+","+str(ball[1]) if orbit_format==1 else str(ball[8]) + "," + str(ball[0]) + "," + str(ball[1])
+            return "Incorrect cross link. In ball № " + str(nn+1) + " ("+ball_str+")"
+
+    # все ОК
+    return ""
+
 def read_file(fl, init=""):
     global dirname, filename, BORDER, WIN_WIDTH, WIN_HEIGHT
 
@@ -496,10 +592,11 @@ def read_file(fl, init=""):
                 with open(filename, mode='r') as f:
                     lines = f.readlines()
             except:
-                return ""
+                return "Can not open the file"
 
     # прочитаем файл
     for nom, stroka in enumerate(lines):
+        str_nom = nom+1
         stroka = stroka.replace('\n', '')
         stroka = stroka.strip()
         if stroka == "": continue
@@ -539,24 +636,27 @@ def read_file(fl, init=""):
             if params.lower().find("rotate") >= 0:
                 flip_rotate = True
         elif command == "BallsFormat":
-            if len(param_mas) != 2: return ""
+            if len(param_mas) != 2: return ("Incorrect 'BallsFormat' parameters. In str="+str(str_nom))
             ring_ballsformat = [float(param_mas[0]), int(param_mas[1])]
         elif command == "Param":
-            if len(param_mas) != 2: return ""
+            if len(param_mas) != 2: return ("Incorrect 'Param' parameters. In str="+str(str_nom))
             for param in param_calc:
                 if param_mas[1].find(param[0]) != -1:
                     param_mas[1] = param_mas[1].replace(param[0], str(param[1]))
-            param_mas[1] = eval(param_mas[1])
+            try:
+                param_mas[1] = eval(param_mas[1])
+            except:
+                return ("Error in 'Param' calculation. In str=" + str(str_nom))
             param_calc.append([param_mas[0], param_mas[1]])
 
         elif command == "Ring":
             if orbit_format == 1:
-                if len(param_mas) != 5: return ""
+                if len(param_mas) != 5: return ("Incorrect 'Ring' parameters. In str="+str(str_nom))
                 param_mas[1], param_mas[2], param_mas[3] = calc_param(param_mas[1], param_calc), calc_param(param_mas[2], param_calc), calc_param(param_mas[3], param_calc)
                 angle_sector = pi * 2 / int(param_mas[4])
                 ring_rings.append( [int(param_mas[0]), param_mas[1], param_mas[2], param_mas[3], int(param_mas[4]), angle_sector])
             else:
-                if len(param_mas) != 7: return ""
+                if len(param_mas) != 7: return ("Incorrect 'Ring' parameters. In str="+str(str_nom))
                 param_mas[2], param_mas[3], param_mas[4] = calc_param(param_mas[2], param_calc), calc_param(param_mas[3], param_calc), calc_param(param_mas[4], param_calc)
                 ring_rings.append([int(param_mas[1]), param_mas[2], param_mas[3], param_mas[4], int(param_mas[5]), 0, int(param_mas[0]), int(param_mas[6])])
 
@@ -573,7 +673,7 @@ def read_file(fl, init=""):
 
         elif command == "Line":
             if orbit_format != 1:
-                if len(param_mas) != 4: return ""
+                if len(param_mas) != 4: return ("Incorrect 'Line' parameters. In str="+str(str_nom))
                 param_mas[2], param_mas[3] = calc_param(param_mas[2], param_calc), calc_param(param_mas[3], param_calc)
                 ring_lines.append([int(param_mas[1]), param_mas[2], param_mas[3], 0, 0, int(param_mas[0])])
 
@@ -594,7 +694,7 @@ def read_file(fl, init=""):
                         param_mas[0], param_mas[1] = int(param_mas[0]), int(param_mas[1])
                         ring_balls.append( [param_mas[0], param_mas[1]+nn, param_mas[2], param_mas[2], int(param_mas[3]), param_mas[4],int(param_mas[5]), []] )
                 else:
-                    return ""
+                    return ("Incorrect 'Ball' parameters. In str="+str(str_nom))
             else:
                 if len(param_mas) == 8:
                     param_mas[3], param_mas[4], param_mas[1] = calc_param(param_mas[3], param_calc), calc_param( param_mas[4], param_calc), int(param_mas[1])
@@ -611,7 +711,13 @@ def read_file(fl, init=""):
                         param_mas[1], param_mas[2] = int(param_mas[1]), int(param_mas[2])
                         ring_balls.append( [param_mas[1], param_mas[2]+nn, param_mas[3], param_mas[3], int(param_mas[4]), param_mas[5], int(param_mas[6]), [], int(param_mas[0])])
                 else:
-                    return ""
+                    return ("Incorrect 'Ball' parameters. In str="+str(str_nom))
+
+    ##################################################
+    # проверка ошибок некорректного заполнения
+    error = check_format_error(orbit_format, ring_rings, ring_lines, ring_balls, ring_ballsformat)
+    if error!="":
+        return error
 
     # заполним расчетные параметры
     angle, grad, num = 0, 0, 0
@@ -710,17 +816,6 @@ def read_file(fl, init=""):
             angle_cos, angle_sin = cos(angle_line), sin(angle_line)
             xx, yy = angle_cos * len_line * num + pos_x, angle_sin * len_line * num + pos_y
             ball[2], ball[3] = xx, yy
-
-    # исправим возможные косяки нумерации
-    ring = 0
-    ring_point = 0 if orbit_format==1 else 8
-    for nn,ball in enumerate(ring_balls):
-        if ball[ring_point] != ring:
-            ring = ball[ring_point]
-            pos = 1
-        if ball[1] != pos:
-            ball[1] = pos
-        pos += 1
 
     # выровняем относительно осей. чтобы не было сильных сдвигов
     for nn,ball in enumerate(ring_balls):
@@ -849,6 +944,12 @@ def read_file(fl, init=""):
                     ball_sec[7].append(cross_ball)
 
                 ball_sec[4], ball_sec[5] = ball[4], ball[5]
+
+    ##################################################
+    # проверка ошибок некорректного заполнения
+    error = check_format_error2(orbit_format, ring_balls)
+    if error!="":
+        return error
 
     ###########################################################################
     # построение орбит
@@ -1211,9 +1312,12 @@ def main():
                                 fl_break = file_ext = fl_reset = True
                                 if old_width != WIN_WIDTH or old_height != WIN_HEIGHT:
                                     fl_reset = False
-                            elif fil == "":
-                                mb.showerror(message="bad rings-file")
-                                window_front(win_caption)
+                            else:
+                                if fil != "-":
+                                    if fil == "":
+                                        fil = "Unknow error"
+                                    mb.showerror(message=("Bad rings-file: "+fil))
+                                    window_front(win_caption)
                     if (BTN_CLICK_STR == "open" or BTN_CLICK_STR == "prev" or BTN_CLICK_STR == "next") and help!=1:
                         fl_break = False
                         fil = read_file(BTN_CLICK_STR)
@@ -1223,9 +1327,12 @@ def main():
                             ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper = fil
                             file_ext = fl_break = True
                             fl_reset = False
-                        elif fil == "":
-                            mb.showerror(message="bad rings-file")
-                            window_front(win_caption)
+                        else:
+                            if fil != "-":
+                                if fil == "":
+                                    fil = "Unknow error"
+                                mb.showerror(message=("Bad rings-file: "+fil))
+                                window_front(win_caption)
 
                     if BTN_CLICK_STR == "scramble" and help!=1:
                         fl_break = False
