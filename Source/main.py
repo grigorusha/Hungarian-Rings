@@ -407,7 +407,7 @@ def init_ring():
         Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=4175
         
         Scale: 3
-        Speed: 2
+        Speed: 4
         Flip: y
         
         # 1-circle, 0-not circle
@@ -551,6 +551,20 @@ def read_file(fl, init=""):
     ring_name, ring_author, ring_scale, ring_speed, orbit_format = "", "", 1, 2, 1
     param_calc, ring_ballsformat, ring_rings, ring_lines, ring_balls, ring_link, solved_ring, orbit_mas, linked, jumper = [], [], [], [], [], [], [], [], [], []
 
+    puzzle_kol = 0
+    dir = os.path.abspath(os.curdir)
+    if os.path.isdir(dir + "\\Rings"):
+        dir += "\\Rings"
+    if dir != "":
+        for root, dirs, files in os.walk(dir):
+            puzzle_kol += len(files)
+    puzzle_kol = 1 if puzzle_kol==0 else puzzle_kol
+
+    ###################################################################################
+    if dirname == "":
+        dirname = os.path.abspath(os.curdir)
+        if os.path.isdir(dirname + "\\Rings"):
+            dirname += "\\Rings"
     if fl == "init":
         lines = init.split("\n")
     else:
@@ -571,14 +585,8 @@ def read_file(fl, init=""):
                     filename = os.path.join(dirname, f_name)
 
         elif fl == "open" or filename == "":
-            if dirname=="":
-                dir = os.path.abspath(os.curdir)
-                if os.path.isdir(dir + "\\Rings"):
-                    dir = dir + "\\Rings"
-            else:
-                dir = dirname
             filetypes = (("Text file", "*.txt"), ("Any file", "*"))
-            f_name = fd.askopenfilename(title="Open Level", initialdir=dir, filetypes=filetypes)
+            f_name = fd.askopenfilename(title="Open Level", initialdir=dirname, filetypes=filetypes)
             if f_name == "":
                 return "-"
             filename = f_name
@@ -1033,7 +1041,7 @@ def read_file(fl, init=""):
     solved_ring = copy.deepcopy(ring_balls)
     ring_speed = ring_speed / 3
 
-    return ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper
+    return ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol
 
 def main():
     global BTN_CLICK, BTN_CLICK_STR, WIN_WIDTH, WIN_HEIGHT, BORDER, GAME, filename, SPRITE_MAS, COUNTUR_MAS, COUNTUR_ALL
@@ -1045,6 +1053,7 @@ def main():
         pass
 
     file_ext = False
+    puzzle_kol = 1
 
     ball_radius = 100  # ring_ballsformat[0]
     offset = (-int(ball_radius / 3), -int(ball_radius / 3))
@@ -1078,7 +1087,7 @@ def main():
     while True:
         if not file_ext:
             fil = init_ring()
-            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper = fil
+            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
 
         help_mul = 3
         for ball in ring_balls:
@@ -1154,7 +1163,7 @@ def main():
                                  inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
                                  onClick=lambda: button_Button_click("open"))
 
-            button_Help = Button(screen, button_Open.textRect.right + 10, button_y2, 80, 20, text='Solved State',
+            button_Help = Button(screen, button_Scramble.textRect.right + 10, button_y2, 80, 20, text='Solved State',
                                  fontSize=20, font=font_button, margin=5, radius=3,
                                  inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
                                  onClick=lambda: button_Button_click("help"))
@@ -1308,7 +1317,7 @@ def main():
                             window_front(win_caption)
 
                             if typeof(fil) != "str":
-                                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper = fil
+                                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
                                 fl_break = file_ext = fl_reset = True
                                 if old_width != WIN_WIDTH or old_height != WIN_HEIGHT:
                                     fl_reset = False
@@ -1324,7 +1333,7 @@ def main():
                         window_front(win_caption)
 
                         if typeof(fil) != "str":
-                            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper = fil
+                            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
                             file_ext = fl_break = True
                             fl_reset = False
                         else:
@@ -1581,9 +1590,10 @@ def main():
                         if len(linked)>0:
                             ring_num_save, orbit_num_save, vek_save = ring_num, orbit_num, vek
 
-                        moved_ring, vek = linked_check(linked, ring_num, orbit_num, vek, orbit_format)
+                        moved_ring, vekt = linked_check(linked, ring_num, orbit_num, vek, orbit_format)
 
                         for mov_ring in moved_ring:
+                            vek = vekt
                             if orbit_format == 1:
                                 ring_num = abs(mov_ring)
                             else:
@@ -1661,16 +1671,19 @@ def main():
             screen.blit(pf, (0, WIN_HEIGHT))
 
             ################################################################################
-            # text
+            # Пишем количество уровней
+            text_puzzles = font2.render(str(puzzle_kol)+' puzzles', True, WHITE_COLOR)
+            text_puzzles_place = text_puzzles.get_rect(topleft=(button_Open.textRect.right+10, button_y2 + 1))
+            screen.blit(text_puzzles, text_puzzles_place)
+            # Пишем количество перемещений
             text_moves = font.render('Moves: ' + str(moves), True, RED_COLOR)
             text_moves_place = text_moves.get_rect(topleft=(button_Help.textRect.right + 18, button_y2 - 3))
-            screen.blit(text_moves, text_moves_place)  # Пишем количество перемещений
-            if solved:
-                text_solved = font.render('Solved', True, WHITE_COLOR)
-            else:
-                text_solved = font.render('not solved', True, RED_COLOR)
+            screen.blit(text_moves, text_moves_place)
+            # Пишем статус
+            text_solved = font.render('Solved', True, WHITE_COLOR) if solved else font.render('not solved', True, RED_COLOR)
             text_solved_place = text_solved.get_rect(topleft=(text_moves_place.right + 10, button_y2 - 3))
-            screen.blit(text_solved, text_solved_place)  # Пишем статус
+            screen.blit(text_solved, text_solved_place)
+            # Пишем подсказку
             text_info = font2.render('Use: mouse wheel - ring rotate, space button - undo, F11/F12 - prev/next file', True, GREEN_COLOR)
             text_info_place = text_solved.get_rect(topleft=(10, button_y3 - 3))
             screen.blit(text_info, text_info_place)
