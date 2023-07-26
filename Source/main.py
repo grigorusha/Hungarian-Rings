@@ -547,7 +547,7 @@ def check_format_error2(orbit_format, ring_balls):
 def read_file(fl, init=""):
     global dirname, filename, BORDER, WIN_WIDTH, WIN_HEIGHT
 
-    flip_y = flip_x = flip_rotate = False
+    flip_y = flip_x = flip_rotate = skip_check_error = False
     ring_name, ring_author, ring_scale, ring_speed, orbit_format = "", "", 1, 2, 1
     param_calc, ring_ballsformat, ring_rings, ring_lines, ring_balls, ring_link, solved_ring, orbit_mas, linked, jumper = [], [], [], [], [], [], [], [], [], []
 
@@ -628,6 +628,9 @@ def read_file(fl, init=""):
             ring_name = params
         elif command == "Author":
             ring_author = params
+        elif command == "SkipCheckError":
+            if int(params)==1:
+                skip_check_error = True
         elif command == "Link":
             ring_link.append(params)
         elif command == "Scale":
@@ -723,9 +726,9 @@ def read_file(fl, init=""):
 
     ##################################################
     # проверка ошибок некорректного заполнения
-    error = check_format_error(orbit_format, ring_rings, ring_lines, ring_balls, ring_ballsformat)
-    if error!="":
-        return error
+    if not skip_check_error:
+        error = check_format_error(orbit_format, ring_rings, ring_lines, ring_balls, ring_ballsformat)
+        if error!="": return error
 
     # заполним расчетные параметры
     angle, grad, num = 0, 0, 0
@@ -955,9 +958,9 @@ def read_file(fl, init=""):
 
     ##################################################
     # проверка ошибок некорректного заполнения
-    error = check_format_error2(orbit_format, ring_balls)
-    if error!="":
-        return error
+    if not skip_check_error:
+        error = check_format_error2(orbit_format, ring_balls)
+        if error!="": return error
 
     ###########################################################################
     # построение орбит
@@ -1216,8 +1219,7 @@ def main():
                             webbrowser.open(link, new=2, autoraise=True)
                 if BTN_CLICK_STR == "about" and help!=1:
                     webbrowser.open("https://github.com/grigorusha/Hungarian-Rings", new=2, autoraise=True)
-                    webbrowser.open("https://twistypuzzles.com/forum/viewtopic.php?p=422931#p422931", new=2,
-                                    autoraise=True)
+                    webbrowser.open("https://twistypuzzles.com/forum/viewtopic.php?p=422931#p422931", new=2, autoraise=True)
                 if BTN_CLICK_STR == "help":
                     help += 1
                     help = help if help<3 else 0
