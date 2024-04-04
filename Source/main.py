@@ -5,15 +5,13 @@ from pygame_widgets.button import Button
 
 from math import pi, sqrt, cos, sin, tan, acos, asin, atan, exp, pow
 
-import webbrowser
 from tkinter import Tk
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
-import win32gui
-import os
-import random
-import copy
-import keyboard
+
+import os,sys,time
+import win32gui,webbrowser
+import random,copy,keyboard
 # import Pillow - for pyinstaller spalsh screen
 
 BACKGROUND_COLOR = "#000000"
@@ -39,6 +37,120 @@ dirname = filename = ""
 BTN_CLICK = False
 BTN_CLICK_STR = ""
 
+def close_spalsh_screen():
+    try:  # pyinstaller spalsh screen
+        import pyi_splash
+        pyi_splash.close()
+    except:
+        pass
+
+def purge_dir(parent, ext):
+    # удалить файлы в папке
+    for root, dirs, files in os.walk(parent):
+        for item in files:
+            # Delete subordinate files
+            filespec = os.path.join(root, item)
+            if filespec.endswith('.'+ext):
+                os.remove(filespec)
+        for item in dirs:
+            # Recursively perform this operation for subordinate directories
+            purge_dir(os.path.join(root, item), ext)
+            os.rmdir(os.path.join(root, item))
+
+def print_time_working(start_time):
+    end_time = time.time() - start_time
+    minute, secunde = int(end_time // 60), round(end_time % 60, 2)
+    print("End testing: " + str(minute) + " minutes, " + str(secunde) + " sec")
+
+def arg_param_check():
+    fl_test, fl_test_photo = False, False
+    for param in os.environ:
+        param = param.lower()
+        if param.find("ringtest")>=0: fl_test = True
+        if fl_test:
+            if param.find("photo")>=0: fl_test_photo = True
+
+    dir_ring, dir_screenshots = "", ""
+    arg_param = sys.argv[1:]
+    if len(arg_param)>0:
+        param = arg_param[0].lower()
+        if param[:4]=="test":
+            fl_test = True
+        if fl_test:
+            if param.find("photo")>=0: fl_test_photo = True
+    if len(arg_param)>1:
+        dir_ring = arg_param[1]
+    if len(arg_param)>2:
+        dir_screenshots = arg_param[2]
+
+    return fl_test, fl_test_photo, dir_ring, dir_screenshots
+
+def dir_test(dir_ring = "", dir_screenshots = ""):
+    mas_files = []
+    if dir_screenshots == "":
+        dir_screenshots = os.path.abspath(os.curdir)
+        if os.path.isdir(dir_screenshots + "\\ScreenShots"):
+            dir_screenshots += "\\ScreenShots"
+
+    if dir_ring == "":
+        dir = os.path.abspath(os.curdir)
+        if os.path.isdir(dir + "\\Rings"):
+            dir += "\\Rings"
+    else:
+        dir = dir_ring
+    if dir != "":
+        for root, dirs, files in os.walk(dir):
+            for fil in files:
+                if os.path.splitext(fil)[1].lower()==".txt":
+                    filename = os.path.join(root, fil)
+                    mas_files.append( [root, filename] )
+    return mas_files, dir, dir_screenshots
+
+def find_photo(puzzle_name, PHOTO):
+    photo_screen, photo_path = "", ""
+    dir = os.path.abspath(os.curdir) + "\\Photo"
+    if os.path.isdir(dir):
+        for root, dirs, files in os.walk(dir):
+            for fil in files:
+                if (fil.lower() == puzzle_name.lower() + ".jpg") or (fil.lower() == puzzle_name.lower() + ".jpeg") or (fil.lower() == puzzle_name.lower() + ".png"):
+                    photo_path = root + "\\" + fil
+                    break
+            if photo_path != "": break
+        if os.path.isfile(photo_path):
+            photo_screen = pygame.image.load(photo_path)
+            photo_rect = (photo_screen.get_rect().width, photo_screen.get_rect().height)
+            if photo_rect[0] / photo_rect[1] <= PHOTO[0] / PHOTO[1]:
+                scale_ko = PHOTO[1] / photo_rect[1]
+                new_width = int(scale_ko * photo_rect[0])
+                PHOTO = (new_width, PHOTO[1])
+            else:
+                scale_ko = PHOTO[0] / photo_rect[0]
+                new_height = int(scale_ko * photo_rect[1])
+                PHOTO = (PHOTO[0], new_height)
+
+            photo_screen = pygame.transform.scale(photo_screen, PHOTO)
+    return photo_screen, PHOTO
+
+def save_state(dirname, filename):
+    app_folder = os.getenv('LOCALAPPDATA')+'\\Hungarian Rings\\'
+    if not os.path.isdir(app_folder):
+        try:
+            os.mkdir(app_folder)
+        except: return
+        if not os.path.isdir(app_folder):
+            return
+    app_ini = app_folder+'Hungarian Rings.ini'
+
+    command_mas = []
+    command_mas.append(["DirName", dirname])
+    command_mas.append(["PuzzleFile", filename])
+
+    with open(app_ini, encoding='utf-8', mode='w') as f:
+        f.write("# Hungarian Rings - Puzzle Simulator"+"\n")
+        for command,params in command_mas:
+            stroka = ""+command+": "+params+"\n"
+            f.write(stroka)
+
 def button_Button_click(button_str):
     global BTN_CLICK, BTN_CLICK_STR
     BTN_CLICK_STR = button_str
@@ -61,6 +173,17 @@ def window_front(win_caption):
                 pass
             Tk().withdraw()
             break
+
+def is_number(s):
+    if typeof(s)!= "str": return False
+    try:
+        float(s) # for int, long and float
+    except ValueError:
+        try:
+            complex(s) # for complex
+        except ValueError:
+            return False
+    return True
 
 def typeof(your_var):
     if (isinstance(your_var, int)):
@@ -389,60 +512,114 @@ def random_scramble(ring_rings, orbit_format, linked, jumper, ring_num_pred, orb
     return ring_num, orbit_num, kol_step, vek, ring_num_pred, orbit_num_pred
 
 def init_ring():
-    init = """
-        Name: Hungarian Rings - 20x2
-        Author: Endre Pap
-        
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=1251
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=10935
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=911
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=1465
-        
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=4762
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=5497
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=5064
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=7801
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=4964
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=5937
-        Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=4175
-        
-        Scale: 3
-        Speed: 4
-        Flip: y
-        
-        # 1-circle, 0-not circle
-        OrbitFormat: 1
-        
-        # ball radius, marker font size
-        BallsFormat: 6.7, 10
-        
-        # Variables
-        Param: pos_ring, 40+40*sqrt(2) # 96.56854250
-        Param: pos_ball, 40+20*sqrt(2) # 68.28427125
-        
-        # ring number, center coordinates x y, radius, number of balls in the ring
-        Ring: 1, 40,       40, 40, 20
-        Ring: 2, pos_ring, 40, 40, 20
-        
-        # colors: 0 white, 1 black, 2 red, 3 green, 4 blue, 5 yellow, 6 purple
-        # colors: 7 orange, 8 light blue, 9 teal, 10 brown, 11 pink, 12 lilac, 13 lime, 14 gray
-        
-        # ring number, ball number, ball center x y coordinates, color, marker, intersection flag
-        Ball: 1,  1,     pos_ball, pos_ball, 2, -, 1
-        Ball: 1,  2 (4), next_ring, 1, -, 0
-        Ball: 1,  6,     next_ring, 1, -, 1
-        Ball: 1,  7 (4), next_ring, 1, -, 0
-        Ball: 1, 11(10), next_ring, 5, -, 0
-        
-        Ball: 2,  1,     pos_ball, pos_ball, 2, -, 1
-        Ball: 2,  2 (4), next_ring, 2, -, 0
-        Ball: 2,  6(10), next_ring, 4, -, 0
-        Ball: 2, 16,     next_ring, 1, -, 1
-        Ball: 2, 17 (4), next_ring, 2, -, 0
-    """.strip('\n')
+    global dirname, filename
 
-    fil = read_file("init", init)
-    return fil
+    fl_init = file_ext = True
+    dirname = filename = ""
+    app_folder = os.getenv('LOCALAPPDATA') + '\\Hungarian Rings\\'
+    app_ini = app_folder + 'Hungarian Rings.ini'
+    if os.path.isfile(app_ini):
+        lines = []
+        try:
+            with open(app_ini, encoding='utf-8', mode='r') as f:
+                lines = f.readlines()
+        except:
+            try:
+                with open(app_ini, mode='r') as f:
+                    lines = f.readlines()
+            except:
+                pass
+
+        for nom, stroka in enumerate(lines):
+            str_nom = nom + 1
+            stroka = stroka.replace('\n', '')
+            stroka = stroka.strip()
+            if stroka == "": continue
+
+            if stroka[0] == "#": continue
+            pos = stroka.find("#")
+            if pos >= 0:
+                stroka = stroka[0:pos]
+
+            pos = stroka.find(":")
+            if pos == -1:
+                command = stroka.strip()
+                params = ""
+            else:
+                command = stroka[0:pos].strip()
+                if pos == len(stroka) - 1:
+                    params = ""
+                else:
+                    params = stroka[pos + 1:].strip()
+
+            if command == "DirName":
+                dirname = params
+            elif command == "PuzzleFile":
+                filename = params
+                fl_init = False
+
+    if dirname != "" and filename != "":
+        fil = read_file("reset")
+        if typeof(fil) == "str":
+            fl_init = True
+
+    if fl_init:
+        init = """
+            Name: Hungarian Rings - 20x2
+            Author: Endre Pap
+            
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=1251
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=10935
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=911
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=1465
+            
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=4762
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=5497
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=5064
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=7801
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=4964
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=5937
+            Link: https://twistypuzzles.com/app/museum/museum_showitem.php?pkey=4175
+            
+            Scale: 3
+            Speed: 4
+            Flip: y
+            
+            # 1-circle, 0-not circle
+            OrbitFormat: 1
+            
+            # ball radius, marker font size
+            BallsFormat: 6.7, 10
+            
+            # Variables
+            Param: pos_ring, 40+40*sqrt(2) # 96.56854250
+            Param: pos_ball, 40+20*sqrt(2) # 68.28427125
+            
+            # ring number, center coordinates x y, radius, number of balls in the ring
+            Ring: 1, 40,       40, 40, 20
+            Ring: 2, pos_ring, 40, 40, 20
+            
+            # colors: 0 white, 1 black, 2 red, 3 green, 4 blue, 5 yellow, 6 purple
+            # colors: 7 orange, 8 light blue, 9 teal, 10 brown, 11 pink, 12 lilac, 13 lime, 14 gray
+            
+            # ring number, ball number, ball center x y coordinates, color, marker, intersection flag
+            Ball: 1,  1,     pos_ball, pos_ball, 2, -, 1
+            Ball: 1,  2 (4), next_ring, 1, -, 0
+            Ball: 1,  6,     next_ring, 1, -, 1
+            Ball: 1,  7 (4), next_ring, 1, -, 0
+            Ball: 1, 11(10), next_ring, 5, -, 0
+            
+            Ball: 2,  1,     pos_ball, pos_ball, 2, -, 1
+            Ball: 2,  2 (4), next_ring, 2, -, 0
+            Ball: 2,  6(10), next_ring, 4, -, 0
+            Ball: 2, 16,     next_ring, 1, -, 1
+            Ball: 2, 17 (4), next_ring, 2, -, 0
+        """.strip('\n')
+
+        fil = read_file("init", init)
+        file_ext = False
+
+    return file_ext, fil
 
 def check_format_error(orbit_format, ring_rings, ring_lines, ring_balls, ring_ballsformat):
     # 1. исправим возможные косяки нумерации шариков
@@ -543,6 +720,17 @@ def check_format_error2(orbit_format, ring_balls):
 
     # все ОК
     return ""
+
+def init_test(file_num, mas_files):
+    global dirname, filename
+
+    if file_num>=len(mas_files):
+        return "Quit",0
+    dirname, filename = mas_files[file_num]
+    fil = read_file("reset")
+
+    file_num += 1
+    return fil,file_num
 
 def read_file(fl, init=""):
     global dirname, filename, BORDER, WIN_WIDTH, WIN_HEIGHT
@@ -1049,12 +1237,6 @@ def read_file(fl, init=""):
 def main():
     global BTN_CLICK, BTN_CLICK_STR, WIN_WIDTH, WIN_HEIGHT, BORDER, GAME, filename, SPRITE_MAS, COUNTUR_MAS, COUNTUR_ALL
 
-    try:  # pyinstaller spalsh screen
-        import pyi_splash
-        pyi_splash.close()
-    except:
-        pass
-
     file_ext = False
     puzzle_kol = 1
 
@@ -1067,6 +1249,17 @@ def main():
     vek_mul = -1
     solved_ring = []
     fl_reset = False
+
+    # инициализация режима Теста
+    fl_test, fl_test_photo, dir_ring, dir_screenshots = arg_param_check()
+    if fl_test:
+        file_num = 0
+        mas_files, dir_ring, dir_screenshots = dir_test(dir_ring, dir_screenshots)
+        purge_dir(dir_screenshots, "jpg")
+        purge_dir(dir_screenshots, "png")
+
+        start_time = time.time()
+        print("Start testing...")
 
     # основная инициализация
     random.seed()
@@ -1088,8 +1281,17 @@ def main():
     ################################################################################
     # перезапуск программы при смене параметров
     while True:
-        if not file_ext:
-            fil = init_ring()
+        if fl_test:
+            file_ext, help_gen = True, False
+            fil,file_num = init_test(file_num, mas_files)
+            close_spalsh_screen()
+            if typeof(fil) != "str":
+                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
+            else: break
+
+        elif not file_ext:
+            file_ext, fil = init_ring()
+            close_spalsh_screen()
             ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
 
         help_mul = 3
@@ -1099,6 +1301,7 @@ def main():
 
         DISPLAY = (WIN_WIDTH, WIN_HEIGHT + PANEL)  # Группируем ширину и высоту в одну переменную
         HELP = (WIN_WIDTH // help_mul, WIN_HEIGHT // help_mul)
+        PHOTO = (WIN_WIDTH // 2, WIN_HEIGHT // 2)
         GAME = (WIN_WIDTH, WIN_HEIGHT)
         # инициализация окна
 
@@ -1132,8 +1335,7 @@ def main():
         mouse_xx, mouse_yy = 0, 0
         drag_ball, ball_pos = False, []
 
-        help = 0
-        help_gen = True
+        help,help_gen,photo,photo_gen = 0, True, 0, True
 
         # инициализация кнопок
         if True:
@@ -1151,7 +1353,11 @@ def main():
                                  inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
                                  onClick=lambda: button_Button_click("undo"))
 
-            button_Info = Button(screen, button_Undo.textRect.right + 20, button_y1, 100, 20, text='Puzzle Photo ->',
+            button_Photo = Button(screen, button_Undo.textRect.right + 20, button_y1, 60, 20, text='Photo ->',
+                                  fontSize=20, font=font_button, margin=5, radius=3,
+                                  inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
+                                  onClick=lambda: button_Button_click("photo"))
+            button_Info            = Button(screen, button_Photo.textRect.right + 10, button_y1, 48, 20, text='Info ->',
                                  fontSize=20, font=font_button, margin=5, radius=3,
                                  inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
                                  onClick=lambda: button_Button_click("info"))
@@ -1172,7 +1378,7 @@ def main():
                                  onClick=lambda: button_Button_click("help"))
 
             button_y3 = button_y2 + 30
-        button_set = [button_Reset, button_Scramble, button_Undo, button_Open, button_Info, button_Help, button_About]
+        button_set = [button_Reset, button_Scramble, button_Undo, button_Open, button_Photo, button_Info, button_Help, button_About]
 
         ################################################################################
         ################################################################################
@@ -1188,9 +1394,17 @@ def main():
             events = pygame.event.get()
             for ev in events:  # Обрабатываем события
                 if (ev.type == QUIT):
+                    if file_ext:
+                        save_state(dirname, filename)
                     return SystemExit, "QUIT"
                 if (ev.type == KEYDOWN and ev.key == K_ESCAPE):
-                    help = 0 if help==1 else help
+                    if fl_test:
+                        print_time_working(start_time)
+                        return SystemExit, "QUIT"
+                    help = 0 if help == 1 else help
+                    photo = 0 if photo == 1 else photo
+                if fl_test: continue
+
                 if (ev.type == KEYDOWN and ev.key == K_F1):
                     BTN_CLICK = True
                     BTN_CLICK_STR = "help"
@@ -1203,6 +1417,12 @@ def main():
                 if (ev.type == KEYDOWN and ev.key == K_F4):
                     BTN_CLICK = True
                     BTN_CLICK_STR = "scramble"
+                if (ev.type == KEYDOWN and ev.key == K_F8):
+                    BTN_CLICK = True
+                    BTN_CLICK_STR = "superscramble"
+                if (ev.type == KEYDOWN and ev.key == K_F5):
+                    BTN_CLICK = True
+                    BTN_CLICK_STR = "photo"
                 if (ev.type == KEYDOWN and ev.key == K_F11):
                     BTN_CLICK = True
                     BTN_CLICK_STR = "prev"
@@ -1223,6 +1443,8 @@ def main():
                 if BTN_CLICK_STR == "help":
                     help += 1
                     help = help if help<3 else 0
+                if BTN_CLICK_STR == "photo":
+                    photo = 1 - photo
 
                 if ev.type == MOUSEMOTION:
                     mouse_xx,mouse_yy = ev.pos[0],ev.pos[1]
@@ -1345,7 +1567,7 @@ def main():
                                 mb.showerror(message=("Bad rings-file: "+fil))
                                 window_front(win_caption)
 
-                    if BTN_CLICK_STR == "scramble" and help!=1:
+                    if (BTN_CLICK_STR == "scramble" or BTN_CLICK_STR == "superscramble") and help!=1:
                         fl_break = False
 
                         pos = ball_kol = 0
@@ -1359,7 +1581,8 @@ def main():
                                 if orbit[0] > pos:
                                     pos += 1
                                     ball_kol += orbit[1]
-                        scramble_move = ball_kol * pos // 3
+                        scramble_mul = 10 if type == "superscramble" else 1
+                        scramble_move = scramble_mul * ball_kol * pos // 3
                         mul = 2 if ball_kol < 100 else 1
                         scramble_move_all = scramble_move_first = (ball_kol//2) * mul
                         ring_num_pred = orbit_num_pred = 0
@@ -1501,6 +1724,8 @@ def main():
                                 events = pygame.event.get()
                                 for ev in events:
                                     if (ev.type == QUIT):
+                                        if file_ext:
+                                            save_state(dirname, filename)
                                         return SystemExit, "QUIT"
 
                                 game_scr.fill(Color(GRAY_COLOR))
@@ -1709,15 +1934,39 @@ def main():
                 help_gen = False
                 help_screen = pygame.transform.scale(game_scr, HELP)
             if help==1:
-                screen.blit(help_screen, (GAME[0] - HELP[0] - BORDER // 3, BORDER // 3))
-                draw.rect(screen, Color("#B88800"), (GAME[0] - HELP[0] - 2 * (BORDER // 3), 0, HELP[0] + 2 * (BORDER // 3), HELP[1] + 2 * (BORDER // 3)), BORDER // 3)
+                screen.blit(help_screen, (GAME[0]-HELP[0]-BORDER//3, BORDER//3))
+                draw.rect(screen, Color("#B88800"), (GAME[0]-HELP[0]-2*(BORDER//3), 0, HELP[0]+2*(BORDER//3), HELP[1]+2*(BORDER//3)), BORDER//3)
+
+            # окно с фото головоломки
+            if photo_gen:
+                photo_gen, photo = False, 0
+                photo_screen, PHOTO = find_photo(ring_name, PHOTO)
+            if photo==1 and photo_screen!="":
+                screen.blit(photo_screen, (GAME[0]-PHOTO[0]-BORDER//2, BORDER//2))
+                draw.rect(screen, Color("#B88800"), (GAME[0]-PHOTO[0]-2*(BORDER//2), 0, PHOTO[0]+2*(BORDER//2), PHOTO[1]+2*(BORDER//2)), BORDER//2)
 
             #####################################################################################
             pygame_widgets.update(events)
             pygame.display.update()  # обновление и вывод всех изменений на экран
+            if fl_test:
+                # сохраним скрин решенной головоломки
+                screenshot = os.path.join(dir_screenshots, ring_name + ".jpg")
+                pygame.image.save(game_scr, screenshot)
+
+                # сохраним скрин с открытым фото реальной головоломки
+                if fl_test_photo and photo_screen != "":
+                    game_scr.blit(photo_screen, (GAME[0]-PHOTO[0]-BORDER//3, BORDER//3))
+                    draw.rect(game_scr, Color("#B88800"), (GAME[0]-PHOTO[0]-2*(BORDER//3), 0, PHOTO[0]+2*(BORDER//3), PHOTO[1]+2*(BORDER//3)), BORDER//3)
+                    screenshot2 = os.path.join(dir_screenshots, ring_name + " (photo).jpg")
+                    pygame.image.save(game_scr, screenshot2)
+
+                break
 
         # удаляем кнопки
         for btn in button_set:
             btn.hide()
+
+    if fl_test:
+        print_time_working(start_time)
 
 main()
