@@ -1,6 +1,6 @@
 # Hungarian Rings - Puzzle Simulator
 
-This is a simulator of the famous "Hungarian Rings" puzzle.  I added 121 different puzzles.
+This is a simulator of the famous "Hungarian Rings" puzzle.  I added 122 different puzzles.
 
 ### **<a href="https://github.com/grigorusha/Hungarian-Rings/releases/">Download EXEcutable file for Hungarian Rings Simulator</a>** 
 ![](https://i.imgur.com/wuVZMXf.png)
@@ -27,6 +27,8 @@ I have created files for all the ring puzzles, you can download them from the "R
 - **F2** - reset the puzzle to its initial state.
 - **F3** - opening a file with a new ring-puzzle
 - **F4** - automatic scramble puzzle
+- **F5** - opens a small window showing the photo with real puzzle
+- **F8** - automatic super-scramble
 - **F11** - previous puzzle
 - **F12** - next puzzle
 ### Programm button
