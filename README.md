@@ -3,8 +3,8 @@
 This is a simulator of the famous "Hungarian Rings" puzzle.  I added 122 different puzzles.
 
 ### **<a href="https://github.com/grigorusha/Hungarian-Rings/releases/">Download win-installer file for Hungarian Rings Simulator</a>** 
-![](https://i.imgur.com/wuVZMXf.png)
-[![Download Hungarian Rings](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/hungarianrings/files/Hungarian%20Rings%20Setup.exe/download)
+![](https://i.imgur.com/Z9xLTeo.png)
+[![Download Hungarian Rings](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/hungarianrings/files/latest/download)
 
 
 ### **<a href="https://twistypuzzles.com/forum/viewtopic.php?p=422931#p422931">forum page with my other Puzzle simulators</a>**
