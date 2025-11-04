@@ -11,7 +11,7 @@ from tkinter import messagebox as mb
 
 import os,sys,time
 import win32gui,webbrowser
-import random,copy,keyboard
+import random,copy,keyboard,winclip32
 # import Pillow - for pyinstaller spalsh screen
 
 BACKGROUND_COLOR = "#000000"
@@ -44,18 +44,71 @@ def close_spalsh_screen():
     except:
         pass
 
-def purge_dir(parent, ext):
+def button_init(screen,font_button):
+    button_y1 = WIN_HEIGHT + 20
+    button_Reset = Button(screen, 10, button_y1, 45, 20, text='Reset', fontSize=20, font=font_button, margin=5,
+                          radius=3,
+                          inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
+                          onClick=lambda: button_Button_click("reset"))
+    button_Scramble = Button(screen, button_Reset.textRect.right + 10, button_y1, 70, 20, text='Scramble',
+                             fontSize=20, font=font_button, margin=5, radius=3,
+                             inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
+                             onClick=lambda: button_Button_click("scramble"))
+    button_Undo = Button(screen, button_Scramble.textRect.right + 10, button_y1, 40, 20, text='Undo',
+                         fontSize=20, font=font_button, margin=5, radius=3,
+                         inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
+                         onClick=lambda: button_Button_click("undo"))
+    button_Redo = Button(screen, button_Undo.textRect.right + 10, button_y1, 40, 20, text='Redo',
+                         fontSize=20, font=font_button, margin=5, radius=3,
+                         inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
+                         onClick=lambda: button_Button_click("redo"))
+
+    button_Photo = Button(screen, button_Redo.textRect.right + 20, button_y1, 60, 20, text='Photo ->',
+                          fontSize=20, font=font_button, margin=5, radius=3,
+                          inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
+                          onClick=lambda: button_Button_click("photo"))
+    button_Info            = Button(screen, button_Photo.textRect.right + 10, button_y1, 48, 20, text='Info ->',
+                         fontSize=20, font=font_button, margin=5, radius=3,
+                         inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
+                         onClick=lambda: button_Button_click("info"))
+    button_About = Button(screen, button_Info.textRect.right + 10, button_y1, 60, 20, text='About ->',
+                          fontSize=20, font=font_button, margin=5, radius=3,
+                          inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
+                          onClick=lambda: button_Button_click("about"))
+
+    button_y2 = button_y1 + 25
+    button_Open = Button(screen, 10, button_y2, 45, 20, text='Open', fontSize=20, font=font_button, margin=5,
+                         radius=3,
+                         inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
+                         onClick=lambda: button_Button_click("open"))
+
+    button_Help = Button(screen, button_Scramble.textRect.right + 10, button_y2, 85, 20, text='Solved State',
+                         fontSize=20, font=font_button, margin=5, radius=3,
+                         inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
+                         onClick=lambda: button_Button_click("help"))
+
+    button_y3 = button_y2 + 30
+    button_set = [button_Reset, button_Scramble, button_Undo, button_Redo, button_Open, button_Photo, button_Info, button_Help, button_About]
+    return button_set, button_Open, button_Help, button_y2,button_y3
+
+def purge_dir(parent, ext_str):
     # удалить файлы в папке
-    for root, dirs, files in os.walk(parent):
-        for item in files:
-            # Delete subordinate files
-            filespec = os.path.join(root, item)
-            if filespec.endswith('.'+ext):
-                os.remove(filespec)
-        for item in dirs:
-            # Recursively perform this operation for subordinate directories
-            purge_dir(os.path.join(root, item), ext)
-            os.rmdir(os.path.join(root, item))
+    ext_mas = ext_str.split(",")
+    for ext in ext_mas:
+        for root, dirs, files in os.walk(parent):
+            for item in files:
+                # Delete subordinate files
+                filespec = os.path.join(root, item)
+                if filespec.endswith('.'+ext) or (item.lower()=="thumbs.db"):
+                    try:
+                        os.remove(filespec)
+                    except: pass
+            for item in dirs:
+                # Recursively perform this operation for subordinate directories
+                purge_dir(os.path.join(root, item), ext)
+                try:
+                    os.rmdir(os.path.join(root, item))
+                except: pass
 
 def print_time_working(start_time):
     end_time = time.time() - start_time
@@ -74,14 +127,14 @@ def arg_param_check():
     arg_param = sys.argv[1:]
     if len(arg_param)>0:
         param = arg_param[0].lower()
-        if param[:4]=="test":
+        if param[:4]=="test" or param[:6]=="galery":
             fl_test = True
         if fl_test:
             if param.find("photo")>=0: fl_test_photo = True
     if len(arg_param)>1:
-        dir_ring = arg_param[1]
+        dir_screenshots = arg_param[1]
     if len(arg_param)>2:
-        dir_screenshots = arg_param[2]
+        dir_ring = arg_param[2]
 
     return fl_test, fl_test_photo, dir_ring, dir_screenshots
 
@@ -89,8 +142,9 @@ def dir_test(dir_ring = "", dir_screenshots = ""):
     mas_files = []
     if dir_screenshots == "":
         dir_screenshots = os.path.abspath(os.curdir)
-        if os.path.isdir(dir_screenshots + "\\ScreenShots"):
-            dir_screenshots += "\\ScreenShots"
+        dir_screenshots += "\\ScreenShots"
+        if not os.path.isdir(dir_screenshots):
+            os.mkdir(dir_screenshots)
 
     if dir_ring == "":
         dir = os.path.abspath(os.curdir)
@@ -488,7 +542,7 @@ def get_ring_num(orbit_format, ring_rings, ring_lines, ring_num):
                 return [], line
     return [], []
 
-def random_scramble(ring_rings, orbit_format, linked, jumper, ring_num_pred, orbit_num_pred):
+def random_scramble(ring_rings, orbit_format, linked, jumper, joint, ring_num_pred, orbit_num_pred):
     vek = random.choice([-1, 1])
     while True:
         ring_num = random.randint(1, len(ring_rings))
@@ -509,6 +563,16 @@ def random_scramble(ring_rings, orbit_format, linked, jumper, ring_num_pred, orb
             if not ((ring_num_pred in moved_ring) or (-ring_num_pred in moved_ring)):
                 ring_num_pred = ring_num
                 break
+    return ring_num, orbit_num, kol_step, vek, ring_num_pred, orbit_num_pred
+
+def get_next_step(macros_stack, orbit_format):
+    step = macros_stack.pop(0)
+    ring_num = int(step[0])
+    kol_step = 1 if len(step) <= 2 else int(step[2:])
+    vek = 1 if step[1] == "R" else -1
+    orbit_num = 0 if orbit_format == 1 else ring_num
+    orbit_num_pred = orbit_num
+    ring_num_pred = ring_num
     return ring_num, orbit_num, kol_step, vek, ring_num_pred, orbit_num_pred
 
 def init_ring():
@@ -732,12 +796,73 @@ def init_test(file_num, mas_files):
     file_num += 1
     return fil,file_num
 
+def check_os_platform():
+    import platform
+    return platform.system().lower()
+
+def get_clipboard_text():
+    # Получает текст из буфера обмена Windows.
+    if check_os_platform()!="windows": return ""
+    try:
+        return winclip32.get_clipboard_data(winclip32.UNICODE_STD_TEXT)
+    except Exception as e:
+        # print(f"Ошибка при получении текста из буфера обмена: {e}")
+        return ""
+
+def convert_macros(macros, macro_text,kol_rings):
+    str_mas = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    type = 0
+    if kol_rings==2:
+        macro_text = macro_text.upper()
+        if macro_text.find("L")>=0 or macro_text.find("R")>=0:
+            type = 1
+        elif macro_text.find("U")>=0 or macro_text.find("D")>=0:
+            type = 2
+
+    # конвертация строки вида: (L,R',L2,R2'),2
+    for nn, step in enumerate(macros):
+        if step == "": continue
+        step, res = step.upper(), ""
+        char = step[0]
+
+        if type == 0:
+            if char not in str_mas: continue
+            res = str(str_mas.find(char))
+        elif type == 1:
+            if char == "L":
+                res = "1"
+            elif char == "R":
+                res = "2"
+            else:
+                continue
+        elif type == 2:
+            if char == "U":
+                res = "1"
+            elif char == "D":
+                res = "2"
+            else:
+                continue
+
+        if step[-1] == "'":
+            res += "L"
+            step = step[:-1]
+        else:
+            res += "R"
+        step = step[1:]
+
+        if step != "":
+            if is_number(step):
+                res += step
+
+        macros[nn] = res
+
 def read_file(fl, init=""):
     global dirname, filename, BORDER, WIN_WIDTH, WIN_HEIGHT
 
     flip_y = flip_x = flip_rotate = skip_check_error = False
     ring_name, ring_author, ring_scale, ring_speed, orbit_format = "", "", 1, 2, 1
-    param_calc, ring_ballsformat, ring_rings, ring_lines, ring_balls, ring_link, solved_ring, orbit_mas, linked, jumper = [], [], [], [], [], [], [], [], [], []
+    param_calc, ring_ballsformat, ring_rings, ring_lines, ring_balls, ring_link, solved_ring, orbit_mas, linked, jumper, joint = [], [], [], [], [], [], [], [], [], [], []
 
     puzzle_kol = 0
     dir = os.path.abspath(os.curdir)
@@ -869,6 +994,12 @@ def read_file(fl, init=""):
             jumper = []
             for par in param_mas:
                 jumper.append(int(par))
+
+        elif command == "Joint":
+            joint_par = []
+            for par in param_mas:
+                joint_par.append(int(par))
+            joint.append( [joint_par[0], joint_par[1:]] )
 
         elif command == "Line":
             if orbit_format != 1:
@@ -1232,7 +1363,7 @@ def read_file(fl, init=""):
     solved_ring = copy.deepcopy(ring_balls)
     ring_speed = ring_speed / 3
 
-    return ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol
+    return ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, joint, puzzle_kol
 
 def main():
     global BTN_CLICK, BTN_CLICK_STR, WIN_WIDTH, WIN_HEIGHT, BORDER, GAME, filename, SPRITE_MAS, COUNTUR_MAS, COUNTUR_ALL
@@ -1245,18 +1376,18 @@ def main():
 
     ring_name = ring_author = ring_link = ""
     ring_scale, ring_speed, orbit_format = 1, 3, 1
-    ring_ballsformat, ring_rings, ring_lines, ring_balls, orbit_mas, linked, jumper = [], [], [], [], [], [], []
+    ring_ballsformat, ring_rings, ring_lines, ring_balls, orbit_mas, linked, jumper, joint = [], [], [], [], [], [], [], []
     vek_mul = -1
     solved_ring = []
     fl_reset = False
 
     # инициализация режима Теста
+    sub_folder = ""
     fl_test, fl_test_photo, dir_ring, dir_screenshots = arg_param_check()
     if fl_test:
         file_num = 0
         mas_files, dir_ring, dir_screenshots = dir_test(dir_ring, dir_screenshots)
-        purge_dir(dir_screenshots, "jpg")
-        purge_dir(dir_screenshots, "png")
+        purge_dir(dir_screenshots, "jpg,jpeg,png")
 
         start_time = time.time()
         print("Start testing...")
@@ -1283,23 +1414,25 @@ def main():
     while True:
         if fl_test:
             file_ext, help_gen = True, False
+            if len(mas_files)==file_num: break
+            sub_folder = mas_files[file_num][0].replace(dir_ring,"")
             fil,file_num = init_test(file_num, mas_files)
             close_spalsh_screen()
             if typeof(fil) != "str":
-                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
+                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, joint, puzzle_kol = fil
             else: break
 
         elif not file_ext:
             file_ext, fil = init_ring()
             close_spalsh_screen()
-            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
+            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, joint, puzzle_kol = fil
 
         help_mul = 3
         for ball in ring_balls:
             if ball[5]!="-":
                 help_mul = 2
 
-        DISPLAY = (WIN_WIDTH, WIN_HEIGHT + PANEL)  # Группируем ширину и высоту в одну переменную
+        DISPLAY = (WIN_WIDTH, WIN_HEIGHT + PANEL)
         HELP = (WIN_WIDTH // help_mul, WIN_HEIGHT // help_mul)
         PHOTO = (WIN_WIDTH // 2, WIN_HEIGHT // 2)
         GAME = (WIN_WIDTH, WIN_HEIGHT)
@@ -1328,9 +1461,10 @@ def main():
         COUNTUR_MAS, COUNTUR_ALL = [], 0
 
         scramble_move = scramble_move_all = scramble_move_first = ring_num_pred = orbit_num_pred = 0
-        moves_stack = []
+        moves_stack, redo_stack =  [], []
         moves = 0
         solved = True
+        macros_stack = []
 
         mouse_xx, mouse_yy = 0, 0
         drag_ball, ball_pos = False, []
@@ -1338,47 +1472,7 @@ def main():
         help,help_gen,photo,photo_gen = 0, True, 0, True
 
         # инициализация кнопок
-        if True:
-            button_y1 = WIN_HEIGHT + 20
-            button_Reset = Button(screen, 10, button_y1, 45, 20, text='Reset', fontSize=20, font=font_button, margin=5,
-                                  radius=3,
-                                  inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
-                                  onClick=lambda: button_Button_click("reset"))
-            button_Scramble = Button(screen, button_Reset.textRect.right + 10, button_y1, 70, 20, text='Scramble',
-                                     fontSize=20, font=font_button, margin=5, radius=3,
-                                     inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
-                                     onClick=lambda: button_Button_click("scramble"))
-            button_Undo = Button(screen, button_Scramble.textRect.right + 10, button_y1, 40, 20, text='Undo',
-                                 fontSize=20, font=font_button, margin=5, radius=3,
-                                 inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
-                                 onClick=lambda: button_Button_click("undo"))
-
-            button_Photo = Button(screen, button_Undo.textRect.right + 20, button_y1, 60, 20, text='Photo ->',
-                                  fontSize=20, font=font_button, margin=5, radius=3,
-                                  inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
-                                  onClick=lambda: button_Button_click("photo"))
-            button_Info            = Button(screen, button_Photo.textRect.right + 10, button_y1, 48, 20, text='Info ->',
-                                 fontSize=20, font=font_button, margin=5, radius=3,
-                                 inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
-                                 onClick=lambda: button_Button_click("info"))
-            button_About = Button(screen, button_Info.textRect.right + 10, button_y1, 60, 20, text='About ->',
-                                  fontSize=20, font=font_button, margin=5, radius=3,
-                                  inactiveColour=BLUE_COLOR, hoverColour=BLUE_COLOR, pressedColour=(0, 200, 20),
-                                  onClick=lambda: button_Button_click("about"))
-
-            button_y2 = button_y1 + 25
-            button_Open = Button(screen, 10, button_y2, 45, 20, text='Open', fontSize=20, font=font_button, margin=5,
-                                 radius=3,
-                                 inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
-                                 onClick=lambda: button_Button_click("open"))
-
-            button_Help = Button(screen, button_Scramble.textRect.right + 10, button_y2, 80, 20, text='Solved State',
-                                 fontSize=20, font=font_button, margin=5, radius=3,
-                                 inactiveColour=GREEN_COLOR, hoverColour=GREEN_COLOR, pressedColour=(0, 200, 20),
-                                 onClick=lambda: button_Button_click("help"))
-
-            button_y3 = button_y2 + 30
-        button_set = [button_Reset, button_Scramble, button_Undo, button_Open, button_Photo, button_Info, button_Help, button_About]
+        button_set, button_Open, button_Help, button_y2,button_y3 = button_init(screen,font_button)
 
         ################################################################################
         ################################################################################
@@ -1429,9 +1523,10 @@ def main():
                 if (ev.type == KEYDOWN and ev.key == K_F12):
                     BTN_CLICK = True
                     BTN_CLICK_STR = "next"
-                if (ev.type == KEYDOWN and ev.key == K_SPACE):
+
+                if (ev.type == KEYDOWN and ev.key == K_INSERT):
                     BTN_CLICK = True
-                    BTN_CLICK_STR = "undo"
+                    BTN_CLICK_STR = "pastemacro"
 
                 if BTN_CLICK_STR == "info" and help!=1:
                     for link in ring_link:
@@ -1445,6 +1540,20 @@ def main():
                     help = help if help<3 else 0
                 if BTN_CLICK_STR == "photo":
                     photo = 1 - photo
+
+                if (ev.type == KEYDOWN and ev.key == K_BACKSPACE):
+                    BTN_CLICK = True
+                    BTN_CLICK_STR = "redo"
+
+                if (ev.type == KEYUP and ev.key == K_SPACE):
+                    BTN_CLICK = True
+                    BTN_CLICK_STR = "undo"
+                # Получаем состояние всех зажатых клавиш
+                if not BTN_CLICK:
+                    keys = pygame.key.get_pressed()
+                    if keys[pygame.K_SPACE]:
+                        BTN_CLICK = True
+                        BTN_CLICK_STR = "undo_fast"
 
                 if ev.type == MOUSEMOTION:
                     mouse_xx,mouse_yy = ev.pos[0],ev.pos[1]
@@ -1541,7 +1650,7 @@ def main():
                             window_front(win_caption)
 
                             if typeof(fil) != "str":
-                                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
+                                ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, joint, puzzle_kol = fil
                                 fl_break = file_ext = fl_reset = True
                                 if old_width != WIN_WIDTH or old_height != WIN_HEIGHT:
                                     fl_reset = False
@@ -1557,7 +1666,7 @@ def main():
                         window_front(win_caption)
 
                         if typeof(fil) != "str":
-                            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, puzzle_kol = fil
+                            ring_name, ring_author, ring_link, ring_scale, ring_speed, orbit_format, orbit_mas, ring_ballsformat, ring_rings, ring_lines, ring_balls, ball_radius, ball_offset, solved_ring, vek_mul, linked, jumper, joint, puzzle_kol = fil
                             file_ext = fl_break = True
                             fl_reset = False
                         else:
@@ -1587,12 +1696,29 @@ def main():
                         scramble_move_all = scramble_move_first = (ball_kol//2) * mul
                         ring_num_pred = orbit_num_pred = 0
 
-                    if BTN_CLICK_STR == "undo" and help!=1:
+                    if (BTN_CLICK_STR == "insertmacro" or BTN_CLICK_STR == "pastemacro") and help != 1:
+                        fl_break = False
+                        # if BTN_CLICK_STR == "pastemacro":
+                        macro_text = get_clipboard_text()
+
+                        if typeof(macro_text) == "str" and macro_text != "":
+                            macro_text = macro_text.strip()
+                            while macro_text.find("  ") >= 0:
+                                macro_text = macro_text.replace("  ", " ")
+                            macro_text = macro_text.replace(" ", ",")
+                            macros_stack = macro_text.split(",")
+                            kol_ring =  len(ring_rings) if orbit_format == 1 else  len(orbit_mas)
+                            convert_macros(macros_stack, macro_text,kol_ring)
+
+                            pass
+
+                    if BTN_CLICK_STR.find("undo")==0 and help!=1:
                         fl_break = False
                         if len(moves_stack) > 0:
                             undo = True
 
                             ring_num, vek, orbit_num = moves_stack.pop()
+                            redo_stack.append([ring_num, vek, orbit_num])
                             moves -= 1
 
                             kol_step = 1
@@ -1605,8 +1731,35 @@ def main():
                             if kol_step>1:
                                 for _ in range(kol_step-1):
                                     ring_num, vek, orbit_num = moves_stack.pop()
+                                    redo_stack.append([ring_num, vek, orbit_num])
                                     moves -= 1
                             vek = -vek
+
+                            BTN_CLICK = False
+                            BTN_CLICK_STR = ""
+                            break
+
+                    if BTN_CLICK_STR.find("redo")==0 and help!=1:
+                        fl_break = False
+                        if len(redo_stack) > 0:
+                            undo = True
+
+                            ring_num, vek, orbit_num = redo_stack.pop()
+                            moves_stack.append([ring_num, vek, orbit_num])
+                            moves += 1
+
+                            kol_step = 1
+                            if len(jumper)>0:
+                                if orbit_format == 1:
+                                    kol_step = jumper[ring_num-1]
+                                else:
+                                    kol_step = jumper[orbit_num-1]
+
+                            if kol_step>1:
+                                for _ in range(kol_step-1):
+                                    ring_num, vek, orbit_num = moves_stack.pop()
+                                    moves_stack.append([ring_num, vek, orbit_num])
+                                    moves += 1
 
                     BTN_CLICK = False
                     BTN_CLICK_STR = ""
@@ -1692,11 +1845,14 @@ def main():
 
             ################################################################################
             # логика игры - выполнение перемещений
-            if ring_num > 0 or scramble_move > 0:
+            if ring_num > 0 or scramble_move > 0 or len(macros_stack) > 0:
                 while True:
                     if scramble_move > 0:
                         # обработка рандома для Скрамбла
-                        ring_num, orbit_num, kol_step, vek, ring_num_pred, orbit_num_pred = random_scramble(ring_rings, orbit_format, linked, jumper, ring_num_pred, orbit_num_pred)
+                        ring_num, orbit_num, kol_step, vek, ring_num_pred, orbit_num_pred = random_scramble(ring_rings, orbit_format, linked, jumper, joint, ring_num_pred, orbit_num_pred)
+                    elif len(macros_stack) > 0:
+                        # обработка Макроса
+                        ring_num, orbit_num, kol_step, vek, ring_num_pred, orbit_num_pred = get_next_step(macros_stack, orbit_format)
 
                     while kol_step>0:
                         kol_step -= 1
@@ -1871,6 +2027,7 @@ def main():
                                 if not undo and mov_ring == moved_ring[0]:
                                     moves += 1
                                     moves_stack.append([ring_num, vek, orbit_num])
+                                    redo_stack = []
                                 break
 
                         if len(linked)>0:
@@ -1881,7 +2038,7 @@ def main():
                         scramble_move -= 1
                         if scramble_move > 0:
                             continue
-                        moves_stack = []
+                        moves_stack, redo_stack = [], []
                         moves = ring_num = vek = orbit_num = scramble_move_all = 0
                     break
 
@@ -1911,7 +2068,7 @@ def main():
             text_solved_place = text_solved.get_rect(topleft=(text_moves_place.right + 10, button_y2 - 3))
             screen.blit(text_solved, text_solved_place)
             # Пишем подсказку
-            text_info = font2.render('Use: mouse wheel - ring rotate, space button - undo, F11/F12 - prev/next file', True, GREEN_COLOR)
+            text_info = font2.render('Use: mouse wheel - ring rotate, space button - undo, F11/F12 - prev/next file, INS - macro', True, GREEN_COLOR)
             text_info_place = text_solved.get_rect(topleft=(10, button_y3 - 3))
             screen.blit(text_info, text_info_place)
 
@@ -1926,6 +2083,19 @@ def main():
                 ball_draw(game_scr, ball, ball[2],ball[3], ball_radius, ball_offset, font_marker)
                 if help > 1:
                     pygame.draw.circle(game_scr, GRADIENT_COLOR[solved_ring[nn][4]][0], (ball[2],ball[3]), ball_radius, 2)
+
+            # отрисовка цепочки
+            for nn,(num,join) in enumerate(joint):
+                if orbit_format == 0: continue
+                points_mas = []
+                for mm,pos in enumerate(join):
+                    for ii, ball in enumerate(ring_balls):
+                        if ball[0]==num and ball[1]==pos:
+                            points_mas.append( [ball[2],ball[3]] )
+                if len(points_mas)>1:
+                    pygame.draw.lines(game_scr,WHITE_COLOR, False, points_mas, 2)
+                    for pos_xy in points_mas:
+                        pygame.draw.circle(game_scr, WHITE_COLOR, pos_xy,3, 3)
 
             screen.blit(game_scr, (0, 0))
 
@@ -1949,8 +2119,14 @@ def main():
             pygame_widgets.update(events)
             pygame.display.update()  # обновление и вывод всех изменений на экран
             if fl_test:
+                if not os.path.isdir(dir_screenshots):
+                    os.makedirs(dir_screenshots, exist_ok=True)
+                if sub_folder != "":
+                    if not os.path.isdir(dir_screenshots + sub_folder):
+                        os.makedirs(dir_screenshots + sub_folder, exist_ok=True)
+
                 # сохраним скрин решенной головоломки
-                screenshot = os.path.join(dir_screenshots, ring_name + ".jpg")
+                screenshot = os.path.join(dir_screenshots+sub_folder, ring_name + ".jpg")
                 pygame.image.save(game_scr, screenshot)
 
                 # сохраним скрин с открытым фото реальной головоломки

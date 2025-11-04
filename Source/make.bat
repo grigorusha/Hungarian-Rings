@@ -1,13 +1,13 @@
-rd "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe" /S /Q
+rd "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe" /S /Q
 
-"C:\Users\Дом\PycharmProjects\Hungarian Rings\venv11\Scripts\pyinstaller" main.py -n "Hungarian Rings.exe" -i "Hungarian Rings.ico" --onedir --noconsole --splash "splashfile.gif" --upx-dir C:\Users\Дом\PycharmProjects\UPX
+"D:\PycharmProjects\Hungarian Rings\venv8\Scripts\pyinstaller" main.py -n "Hungarian Rings.exe" -i "Hungarian Rings.ico" --onedir --noconsole --splash "splashfile.gif" --upx-dir D:\PycharmProjects\UPX
 
-copy "C:\Users\Дом\PycharmProjects\Hungarian Rings\Hungarian Rings.png" "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\"
-copy "C:\Users\Дом\PycharmProjects\Hungarian Rings\README.txt" "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\"
+copy "D:\PycharmProjects\Hungarian Rings\Hungarian Rings.png" "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\"
+copy "D:\PycharmProjects\Hungarian Rings\README.txt" "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\"
 
-md "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Rings"
-md "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Photo"
-md "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Samples"
-xcopy "C:\Users\Дом\PycharmProjects\Hungarian Rings\Rings\*.*" "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Rings" /S /E /Y /Q
-xcopy "C:\Users\Дом\PycharmProjects\Hungarian Rings\Photo\*.*" "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Photo" /S /E /Y /Q
-xcopy "C:\Users\Дом\PycharmProjects\Hungarian Rings\Samples\*.*" "C:\Users\Дом\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Samples" /S /E /Y /Q
+md "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Rings"
+md "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Photo"
+md "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Samples"
+xcopy "D:\PycharmProjects\Hungarian Rings\Rings\*.*" "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Rings" /S /E /Y /Q
+xcopy "D:\PycharmProjects\Hungarian Rings\Photo\*.*" "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Photo" /S /E /Y /Q
+xcopy "D:\PycharmProjects\Hungarian Rings\Samples\*.*" "D:\PycharmProjects\Hungarian Rings\dist\Hungarian Rings.exe\Samples" /S /E /Y /Q
