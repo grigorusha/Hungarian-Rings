@@ -22,7 +22,9 @@ I have created files for all the ring puzzles, you can download them from the "R
 - **Mouse Wheel** - rotation of the rings clockwise or counterclockwise
 - **Mouse click (second button)** - go back one step
 ### Keyboard hot-key
-- **Space** - back one step
+- **Space** - undo, one back step
+- **Backspace** - redo, one forward step
+- **Ins** - insert macro string from clipboard. in this format - L R' L2 R2'
 - **F1** - opens a small hint window showing the initial state of the puzzle.
 - **F2** - reset the puzzle to its initial state.
 - **F3** - opening a file with a new ring-puzzle
@@ -34,7 +36,8 @@ I have created files for all the ring puzzles, you can download them from the "R
 ### Programm button
 - **Reset** - reset the puzzle to its initial state.
 - **Scramble** - automatic scramble puzzle
-- **Undo** - back one step
+- **Undo** - one back step
+- **Redo** - one forward step
 - **Open** - opening a file with a new ring-puzzle
 - **Solved State** - opens a small hint window showing the initial state of the puzzle.
 - **Puzzle Photo** - opens a link in the browser to photos and a description of the original puzzle.
